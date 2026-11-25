@@ -1,0 +1,28 @@
+{
+  "name": "@blue/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed client for the Blue Ecosystem API, derived from @blue/contracts (no code generation).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@blue/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@blue/config": "workspace:*",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "vitest": "^5.1.0"
+  }
+}

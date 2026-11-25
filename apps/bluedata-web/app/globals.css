@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+@import '@blue/ui/styles.css';
+/* Tailwind scans the shared packages' sources for class names. */
+@source '../../../packages/ui/src';
+@source '../../../packages/web-shell/src';

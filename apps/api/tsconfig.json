@@ -1,0 +1,14 @@
+{
+  "extends": "@blue/config/tsconfig/node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    // NestJS uses legacy decorators. Constructor injection always uses explicit @Inject(token),
+    // so DI does not depend on emitDecoratorMetadata (which esbuild/tsx and Vitest don't emit).
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src", "test", "vitest.config.ts"]
+}

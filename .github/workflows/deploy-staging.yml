@@ -1,0 +1,83 @@
+name: Deploy staging
+
+# Manual for now. Switch to `workflow_run` after CI succeeds on main once staging is stable.
+on:
+  workflow_dispatch:
+    inputs:
+      bootstrap_database:
+        description: Run the database bootstrap first (tick on the very first deploy)
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false # never interrupt a deploy halfway
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC → short-lived AWS credentials (no stored keys)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    # Protected environment: configure required reviewers in GitHub, and these variables from
+    # `tofu output deploy` (infra/terraform/staging): AWS_DEPLOY_ROLE_ARN, ECS_CLUSTER,
+    # PRIVATE_SUBNETS (comma-separated), APPS_SECURITY_GROUP, API_URL.
+    environment: staging
+    env:
+      AWS_REGION: af-south-1
+      TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: af-south-1
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/api.Dockerfile
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/blue/api:${{ env.TAG }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Build and push SamakiOS image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/web.Dockerfile
+          build-args: |
+            APP=samakios-web
+            NEXT_PUBLIC_API_URL=${{ vars.API_URL }}
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/blue/samakios-web:${{ env.TAG }}
+          cache-from: type=gha,scope=samakios-web
+          cache-to: type=gha,mode=max,scope=samakios-web
+      - name: Build and push BlueData image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/web.Dockerfile
+          build-args: |
+            APP=bluedata-web
+            NEXT_PUBLIC_API_URL=${{ vars.API_URL }}
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/blue/bluedata-web:${{ env.TAG }}
+          cache-from: type=gha,scope=bluedata-web
+          cache-to: type=gha,mode=max,scope=bluedata-web
+
+      - name: Migrate, then roll out services
+        env:
+          PRIVATE_SUBNETS: ${{ vars.PRIVATE_SUBNETS }}
+          APPS_SECURITY_GROUP: ${{ vars.APPS_SECURITY_GROUP }}
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          BOOTSTRAP_DATABASE: ${{ inputs.bootstrap_database }}
+        run: >
+          bash infra/deploy/ecs-deploy.sh "${{ vars.ECS_CLUSTER }}" blue-staging
+          "$REGISTRY/blue/api:$TAG" "$REGISTRY/blue/samakios-web:$TAG" "$REGISTRY/blue/bluedata-web:$TAG"

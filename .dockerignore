@@ -1,0 +1,20 @@
+# Keep images small and secrets out of the build context.
+**/node_modules
+**/dist
+**/.next
+**/.next-e2e
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+.git
+.env
+.env.*
+!.env.example
+tests/e2e/.artifacts
+tests/e2e/playwright-report
+tests/e2e/test-results
+.claude
+**/.terraform
+infra/terraform/**/*.tfstate*
+infra/terraform/**/backend.hcl
+infra/terraform/**/terraform.tfvars

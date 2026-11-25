@@ -1,0 +1,20 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'tests/*'
+
+# Supply-chain hygiene: pnpm runs no dependency install scripts unless listed here.
+# Review any new entry: install scripts execute arbitrary code on developer machines and CI.
+onlyBuiltDependencies:
+  # Verifies its platform-specific binary (used by tsx, Vite/Vitest, drizzle-kit).
+  - esbuild
+
+# Reviewed and intentionally not run (silences the warning; behaviour is unaffected):
+ignoredBuiltDependencies:
+  # Optional native speed-up for BullMQ's msgpack; falls back to pure JavaScript.
+  - msgpackr-extract
+  # Optional native code for Docker-over-SSH in Testcontainers; we use the local socket.
+  - ssh2
+  - cpu-features
+  # Postinstall only prints a version notice.
+  - protobufjs

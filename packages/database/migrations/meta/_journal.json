@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793727985821,
+      "tag": "0000_platform_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793728013004,
+      "tag": "0001_audit_and_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793730000342,
+      "tag": "0002_organisations_visible_to_invitees",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793736527951,
+      "tag": "0003_samakios_catalogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793736529126,
+      "tag": "0004_ops_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795604189641,
+      "tag": "0005_trading_partners",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795604192893,
+      "tag": "0006_trading_partners_force_rls",
+      "breakpoints": true
+    }
+  ]
+}

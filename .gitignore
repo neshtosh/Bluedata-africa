@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.next/
+.next-e2e/
+out/
+coverage/
+*.tsbuildinfo
+
+# tooling caches
+.turbo/
+.eslintcache
+
+# environment — never commit real secrets; .env.example is the template
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+
+# Next.js generated type references (recreated by next dev/build/typegen)
+next-env.d.ts
+
+# OpenTofu / Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+infra/terraform/**/backend.hcl
+infra/terraform/**/*.auto.tfvars
+infra/terraform/**/terraform.tfvars

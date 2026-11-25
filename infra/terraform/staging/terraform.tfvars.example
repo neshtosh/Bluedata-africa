@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (gitignored).
+domain_name        = "staging.example.africa"
+github_repository  = "your-org/blue-ecosystem"
+budget_alert_email = "ops@example.africa"
+# monthly_budget_usd = 250
+# create_github_oidc_provider = false  # if the account already has the GitHub OIDC provider

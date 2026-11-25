@@ -1,0 +1,51 @@
+{
+  "name": "@blue/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Blue Ecosystem platform backend: NestJS modular monolith (API and worker entrypoints).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "start": "node dist/main.api.js",
+    "start:worker": "node dist/main.worker.js",
+    "dev": "tsx watch src/main.api.ts",
+    "dev:worker": "tsx watch src/main.worker.ts",
+    "openapi:generate": "tsx src/scripts/openapi.ts",
+    "openapi:check": "tsx src/scripts/openapi.ts --check"
+  },
+  "dependencies": {
+    "@blue/contracts": "workspace:*",
+    "@blue/database": "workspace:*",
+    "@blue/primitives": "workspace:*",
+    "@fastify/cors": "^11.4.0",
+    "@nestjs/common": "^12.3.2",
+    "@nestjs/core": "^12.3.2",
+    "@nestjs/platform-fastify": "^12.3.2",
+    "bullmq": "^6.5.4",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "5.12.7",
+    "ioredis": "^6.0.0",
+    "nestjs-pino": "^5.3.1",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@blue/api-client": "workspace:*",
+    "@blue/config": "workspace:*",
+    "@nestjs/testing": "^12.3.2",
+    "@testcontainers/postgresql": "^12.2.1",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "eslint": "^10.14.0",
+    "testcontainers": "^12.2.1",
+    "tsx": "^4.23.15",
+    "vitest": "^5.1.0"
+  }
+}

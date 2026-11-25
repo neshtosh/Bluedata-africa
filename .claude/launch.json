@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/pnpm/bin/pnpm.cjs", "--filter", "@blue/api", "dev"],
+      "port": 4000
+    },
+    {
+      "name": "samakios-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/pnpm/bin/pnpm.cjs", "--filter", "@blue/samakios-web", "dev"],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
+      "name": "bluedata-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["node_modules/pnpm/bin/pnpm.cjs", "--filter", "@blue/bluedata-web", "dev"],
+      "port": 3002,
+      "autoPort": false
+    }
+  ]
+}

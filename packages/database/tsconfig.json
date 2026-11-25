@@ -1,0 +1,8 @@
+{
+  "extends": "@blue/config/tsconfig/node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": ["src", "test", "drizzle.config.ts", "vitest.config.ts"]
+}
