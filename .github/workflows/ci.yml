@@ -34,7 +34,7 @@ jobs:
       - run: pnpm format:check
       # Includes: Testcontainers integration tests (PostGIS, Valkey) — Docker is available on
       # GitHub-hosted Ubuntu runners — the OpenAPI drift check, and the real-Node module-graph test.
-      - run: pnpm turbo run build typecheck lint test
+      - run: pnpm run verify # via a script: "pnpm turbo" breaks on Linux (relative PATH to the pinned pnpm)
 
   e2e:
     name: Browser end-to-end
@@ -48,7 +48,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build --filter="./packages/*"
+      - run: pnpm run build:packages
       - run: pnpm --filter @blue/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @blue/e2e e2e
       - if: failure()

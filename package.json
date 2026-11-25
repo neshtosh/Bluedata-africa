@@ -11,6 +11,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "verify": "turbo run build typecheck lint test",
+    "build:packages": "turbo run build --filter=./packages/*",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "pnpm --filter @blue/database db:migrate",
