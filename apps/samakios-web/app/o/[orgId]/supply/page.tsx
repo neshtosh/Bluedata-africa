@@ -30,35 +30,12 @@ import { describeError, useApi, useI18n } from '@blue/web-shell';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useMemo, useState, type FormEvent } from 'react';
+import { grouped, sumKg, todayLocal } from '../../../lib/numbers';
 import { useMembership } from '../organisation-context';
 
 type State = 'open' | 'closed' | 'all';
 
 const ORIGIN_LABELS: Record<SupplyOrigin, string> = { wild: 'Wild-caught', farmed: 'Farmed' };
-
-/** Adds kilogram strings exactly (to the gram), without floating point. */
-function sumKg(values: string[]): string {
-  const grams = values.reduce((total, value) => {
-    const [whole = '0', fraction = ''] = value.split('.');
-    return total + BigInt(whole + fraction.padEnd(3, '0').slice(0, 3));
-  }, 0n);
-  const text = grams.toString().padStart(4, '0');
-  const kg = `${text.slice(0, -3)}.${text.slice(-3)}`.replace(/\.?0+$/, '');
-  return kg === '' ? '0' : kg;
-}
-
-/** "12500.5" → "12,500.5" for reading; the stored value is never rounded. */
-function grouped(value: string): string {
-  const [whole = '0', fraction] = value.split('.');
-  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return fraction ? `${withCommas}.${fraction}` : withCommas;
-}
-
-function todayLocal(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
 
 function statusBadge(record: SupplyRecord) {
   if (record.expired) return <Badge tone="warning">Expired</Badge>;
@@ -79,6 +56,7 @@ export default function SupplyPage() {
   const api = useApi();
   const { t } = useI18n();
   const canManage = permissions.includes('samakios.supply.manage');
+  const canBuy = permissions.includes('samakios.purchases.manage');
   const orgId = organisation.id;
 
   const [state, setState] = useState<State>('open');
@@ -247,6 +225,7 @@ export default function SupplyPage() {
               suppliers={suppliers.data}
               vocabulary={vocabulary.data}
               canManage={canManage}
+              canBuy={canBuy}
             />
           )}
         </Card>
@@ -293,12 +272,14 @@ function SupplyTable({
   suppliers,
   vocabulary,
   canManage,
+  canBuy,
 }: {
   records: SupplyRecord[];
   items: CatalogueItem[];
   suppliers: TradingPartner[];
   vocabulary: Vocabulary;
   canManage: boolean;
+  canBuy: boolean;
 }) {
   const { organisation } = useMembership();
   const api = useApi();
@@ -340,7 +321,7 @@ function SupplyTable({
               <th className="px-5 py-2.5 text-right font-medium">Asking price</th>
               <th className="px-5 py-2.5 font-medium">When</th>
               <th className="px-5 py-2.5 font-medium">Status</th>
-              {canManage ? <th className="px-5 py-2.5" /> : null}
+              {canManage || canBuy ? <th className="px-5 py-2.5" /> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-mist-100">
@@ -374,9 +355,9 @@ function SupplyTable({
                       : `From ${record.availableFrom}`}
                   </td>
                   <td className="px-5 py-3">{statusBadge(record)}</td>
-                  {canManage ? (
+                  {canManage || canBuy ? (
                     <td className="space-x-2 whitespace-nowrap px-5 py-3 text-right">
-                      {record.status === 'available' && !record.expired ? (
+                      {canManage && record.status === 'available' && !record.expired ? (
                         <Button
                           variant="secondary"
                           size="sm"
@@ -385,7 +366,7 @@ function SupplyTable({
                           Reserve
                         </Button>
                       ) : null}
-                      {record.status === 'reserved' ? (
+                      {canManage && record.status === 'reserved' ? (
                         <Button
                           variant="secondary"
                           size="sm"
@@ -394,7 +375,14 @@ function SupplyTable({
                           Release
                         </Button>
                       ) : null}
-                      {open ? (
+                      {open && canBuy && !record.expired ? (
+                        <Button size="sm" asChild>
+                          <Link href={`/o/${organisation.id}/purchases?offer=${record.id}`}>
+                            Buy
+                          </Link>
+                        </Button>
+                      ) : null}
+                      {open && canManage ? (
                         <Button
                           variant="secondary"
                           size="sm"

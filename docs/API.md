@@ -97,14 +97,14 @@ Every endpoint declares: required permission key, required product entitlement (
 | Supply records | `GET/POST /supply-records`, `PATCH /supply-records/{id}` (edit; `status` available / reserved / withdrawn) — **built in 3.3**. Expiry is derived from `availableUntil`, so there is no expire endpoint | Filters: `state=open\|closed\|all`, `partnerId`, `catalogueItemId`, `origin=wild\|farmed` |
 | Catch records | `GET/POST /catch-records` | coop/BMU/fisher orgs |
 | Harvest records | `GET/POST /harvest-records` | farm orgs |
-| Purchases | `GET/POST /purchases`, `PATCH /purchases/{id}` (draft only), `POST /purchases/{id}/confirm`, `POST /purchases/{id}/cancel` | Confirm creates batches & stock. `POST /purchases` with `"confirm": true` = spot purchase in one call (offline-friendly) |
+| Purchases | `GET/POST /purchases`, `POST /purchases/{id}/confirm`, `POST /purchases/{id}/cancel` — **built in 3.4**. `POST /purchases` with `receiveNow: true` (default) is a spot purchase received in one call. Planned: `PATCH /purchases/{id}` for drafts | Filters: `status`, `partnerId`, `from`, `to`. Confirm creates batches, receipt movements and balances; lines may take up a supply offer (`supplyRecordId`) |
 | Sales orders | `GET/POST /sales-orders`, `POST …/{id}/quote`, `/confirm`, `/fulfil`, `/cancel` | Fulfil allocates batches |
 | Invoices | `POST /sales-orders/{id}/invoices`, `GET /invoices`, `GET /invoices/{id}/pdf`, `POST /invoices/{id}/void` | Immutable after issue |
 | Payments | `GET/POST /payments`, `POST /payments/{id}/allocations`, `POST /payments/{id}/reverse` | Inbound/outbound, advances |
 | Expenses | `GET/POST /expenses`, `POST /expenses/{id}/reverse` | |
 | Storage locations | `GET/POST/PATCH /storage-locations` | |
-| Batches | `GET /batches`, `GET /batches/{id}` (incl. lineage & movements) | |
-| Inventory | `GET /inventory/balances` (by item, location, batch), `GET /inventory/movements`, `POST /inventory/transfers`, `POST /inventory/adjustments`, `POST /inventory/losses` | Adjustments/losses need reason; above threshold need approval permission |
+| Batches | `GET /inventory/batches` — **built in 3.4** (on hand, received, cost, cost per kg, purchase). Planned: `GET /batches/{id}` with lineage and movements | Filters: `catalogueItemId`, `inStock` (default true) |
+| Inventory | `GET /inventory/summary` — **built in 3.4** (kg and cost on hand per item, purchases in the last 7 days). Planned: `GET /inventory/balances` (by item, location, batch), `GET /inventory/movements`, `POST /inventory/transfers`, `POST /inventory/adjustments`, `POST /inventory/losses` | Adjustments/losses need reason; above threshold need approval permission |
 | Vehicles | `GET/POST/PATCH /vehicles` | |
 | Consignments | `GET/POST /consignments` | |
 | Deliveries | `GET/POST /deliveries`, `POST …/{id}/dispatch`, `/confirm-delivery`, `/fail`, `GET …/{id}/events` | Confirm with delivered kg and proof document |

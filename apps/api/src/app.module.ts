@@ -23,6 +23,7 @@ import { ReferenceModule } from './platform/reference/reference.module.js';
 import { TenancyModule } from './platform/tenancy/tenancy.module.js';
 import { CatalogueModule } from './samakios/catalogue/catalogue.module.js';
 import { PartnersModule } from './samakios/partners/partners.module.js';
+import { PurchasesModule } from './samakios/purchases/purchases.module.js';
 import { SupplyModule } from './samakios/supply/supply.module.js';
 
 /**
@@ -57,6 +58,7 @@ export class AppModule {
         CatalogueModule,
         PartnersModule,
         SupplyModule,
+        PurchasesModule,
         // The API description is public knowledge for partners, but production doesn't serve it.
         ...(config.NODE_ENV === 'production' ? [] : [OpenApiModule]),
         ...extraModules,

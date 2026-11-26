@@ -15,7 +15,7 @@
 | `ref` | currencies, countries, organisation_types, products, plans, permissions; **species, species_names, product_forms, units** (3.1) | admin areas, FX rates → Phase 3/4; global unit conversions deferred (ADR-017) |
 | `system` | outbox_events (no RLS, documented exception), idempotency_keys, document_sequences | documents, notifications, integration configs → Phase 3 |
 | `audit` | audit_log (monthly partitions + default, append-only) | — |
-| `ops` | catalogue_items, catalogue_item_units (3.1); trading_partners, partner_species (3.2: `landing_site` is free text for now; `home_site_id` and `linked_organisation_id` not built yet); supply_records (3.3: `location` free text instead of `site_id`; quantity kept as entered plus `quantity_kg`; asking price per unit; "expired" derived, not stored) | trading, inventory, logistics, finance → rest of Phase 3 |
+| `ops` | catalogue_items, catalogue_item_units (3.1); trading_partners, partner_species (3.2: `landing_site` is free text for now; `home_site_id` and `linked_organisation_id` not built yet); supply_records (3.3: `location` free text instead of `site_id`; quantity kept as entered plus `quantity_kg`; asking price per unit; "expired" derived, not stored); purchases, purchase_lines, batches, inventory_movements, inventory_balances (3.4: no `branch_id`, `payment_status` or storage locations yet; batches store total `cost_minor` and derive cost per kg; ledger and batches append-only) | sales, inventory, logistics, finance → rest of Phase 3 |
 | `geo`, `intel` | — | Phase 4 |
 
 Source: `packages/database` (schema in `src/schema`, SQL in `migrations/`). Tests: `packages/database/test/tenant-isolation.test.ts`.

@@ -264,6 +264,25 @@ describe('privileges and catalogue checks', () => {
     );
   });
 
+  it('the stock ledger and batches are append-only for the runtime role', async () => {
+    const privileges = await db.execute<{ table: string; privilege: string; granted: boolean }>(
+      sql`select t.name as table, p.name as privilege,
+                 has_table_privilege('app_runtime', t.name, p.name) as granted
+          from unnest(array['ops.inventory_movements', 'ops.batches']) as t(name)
+          cross join unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) as p(name)`,
+    );
+    const granted = privileges.rows
+      .filter((row) => row.granted)
+      .map((row) => `${row.table}:${row.privilege}`)
+      .sort();
+    expect(granted).toEqual([
+      'ops.batches:INSERT',
+      'ops.batches:SELECT',
+      'ops.inventory_movements:INSERT',
+      'ops.inventory_movements:SELECT',
+    ]);
+  });
+
   it('seeds the correct currency minor units (UGX and RWF have none)', async () => {
     const rows = await db.select().from(currencies);
     const minor = Object.fromEntries(rows.map((r) => [r.code, r.minorUnits]));

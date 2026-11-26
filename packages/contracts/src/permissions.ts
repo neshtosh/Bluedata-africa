@@ -46,6 +46,18 @@ export const PERMISSIONS = {
     product: 'samakios',
     description: 'Record, reserve and withdraw supply offers',
   },
+  'samakios.purchases.read': {
+    product: 'samakios',
+    description: 'View purchases and what was paid for them',
+  },
+  'samakios.purchases.manage': {
+    product: 'samakios',
+    description: 'Record, confirm and cancel purchases (confirming receives stock)',
+  },
+  'samakios.inventory.read': {
+    product: 'samakios',
+    description: 'View stock on hand, batches and their cost',
+  },
   'samakios.catalogue.manage': {
     product: 'samakios',
     description: 'Add, edit and archive catalogue items and their unit weights',

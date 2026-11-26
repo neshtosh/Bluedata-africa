@@ -4,7 +4,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { SMS_SENDER, type SmsSender } from '../src/platform/identity/sms-sender.js';
-import { todayIn } from '../src/samakios/supply/supply.service.js';
+import { todayIn } from '../src/samakios/shared/trading-rules.js';
 import { Client, signIn } from './helpers/http-client.js';
 import {
   startApp,

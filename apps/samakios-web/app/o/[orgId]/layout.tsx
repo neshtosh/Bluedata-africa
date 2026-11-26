@@ -42,7 +42,11 @@ export default function OrganisationLayout({ children }: { children: ReactNode }
         ? 'Suppliers & buyers'
         : pathname.endsWith('/supply')
           ? 'Supply'
-          : 'Dashboard';
+          : pathname.endsWith('/purchases')
+            ? 'Purchases'
+            : pathname.endsWith('/inventory')
+              ? 'Inventory'
+              : 'Dashboard';
 
   return (
     <SessionGate onSignedOut={toSignIn}>
@@ -85,14 +89,14 @@ export default function OrganisationLayout({ children }: { children: ReactNode }
                       <NavItem icon={<IconProduction />} active={pathname === `${base}/supply`}>
                         <Link href={`${base}/supply`}>Supply</Link>
                       </NavItem>
-                      <NavItem icon={<IconPurchases />} soon={soon}>
-                        <Link href={base}>Purchases</Link>
+                      <NavItem icon={<IconPurchases />} active={pathname === `${base}/purchases`}>
+                        <Link href={`${base}/purchases`}>Purchases</Link>
                       </NavItem>
                       <NavItem icon={<IconSales />} soon={soon}>
                         <Link href={base}>Sales</Link>
                       </NavItem>
-                      <NavItem icon={<IconInventory />} soon={soon}>
-                        <Link href={base}>Inventory</Link>
+                      <NavItem icon={<IconInventory />} active={pathname === `${base}/inventory`}>
+                        <Link href={`${base}/inventory`}>Inventory</Link>
                       </NavItem>
                       <NavItem icon={<IconLogistics />} soon={soon}>
                         <Link href={base}>Deliveries</Link>

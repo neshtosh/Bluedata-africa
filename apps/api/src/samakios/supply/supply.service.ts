@@ -5,21 +5,19 @@ import type {
   SupplyRecord,
   UpdateSupplyRecordSchema,
 } from '@blue/contracts';
-import {
-  catalogueItems,
-  catalogueItemUnits,
-  countries,
-  currencies,
-  organisations,
-  supplyRecords,
-  tradingPartners,
-  type Transaction,
-} from '@blue/database';
-import { formatMinor, newId, toKilograms, toMinor, type Id } from '@blue/primitives';
+import { catalogueItems, supplyRecords, tradingPartners } from '@blue/database';
+import { newId, type Id } from '@blue/primitives';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
 import { TenantDatabase } from '../../kernel/database/tenant-database.js';
+import {
+  formatMoney,
+  kilograms,
+  orgSettings,
+  priceToMinor,
+  type OrgSettings,
+} from '../shared/trading-rules.js';
 import { AppError, type FieldError } from '../../kernel/errors/app-error.js';
 import { OutboxService } from '../../kernel/outbox/outbox.service.js';
 import { AuditService } from '../../platform/audit/audit.service.js';
@@ -32,14 +30,6 @@ type SupplyRow = typeof supplyRecords.$inferSelect;
 
 const OPEN = ['available', 'reserved'] as const;
 const CLOSED = ['purchased', 'withdrawn'] as const;
-
-/** What a supply record needs to know about its organisation. */
-interface OrgSettings {
-  currency: string;
-  /** Today's date where the organisation is (its country's timezone), YYYY-MM-DD. */
-  today: string;
-  minorUnits: Map<string, number>;
-}
 
 /**
  * Supply records (DATABASE.md §3.5): fish a supplier has or expects, wild or farmed. Purchases
@@ -133,7 +123,7 @@ export class SupplyService {
       const askingPriceMinor =
         input.askingPrice === undefined
           ? null
-          : priceToMinor(input.askingPrice, settings.currency, settings);
+          : priceToMinor(input.askingPrice, settings.currency, settings, 'askingPrice');
 
       const id = newId();
       const [row] = await tx
@@ -228,7 +218,15 @@ export class SupplyService {
           ? {}
           : input.askingPrice === null
             ? { askingPriceMinor: null, currency: null }
-            : { askingPriceMinor: priceToMinor(input.askingPrice, currency, settings), currency };
+            : {
+                askingPriceMinor: priceToMinor(
+                  input.askingPrice,
+                  currency,
+                  settings,
+                  'askingPrice',
+                ),
+                currency,
+              };
 
       const [row] = await tx
         .update(supplyRecords)
@@ -267,33 +265,6 @@ export class SupplyService {
   }
 }
 
-async function orgSettings(tx: Transaction): Promise<OrgSettings> {
-  const [org] = await tx
-    .select({ currency: organisations.defaultCurrency, timezone: countries.defaultTimezone })
-    .from(organisations)
-    .innerJoin(countries, eq(countries.code, organisations.countryCode))
-    .where(eq(organisations.id, sql`app.current_org_id()`));
-  if (!org) throw new Error('organisation not visible in its own tenant context');
-  const rows = await tx
-    .select({ code: currencies.code, minorUnits: currencies.minorUnits })
-    .from(currencies);
-  return {
-    currency: org.currency,
-    today: todayIn(org.timezone),
-    minorUnits: new Map(rows.map((r) => [r.code, r.minorUnits])),
-  };
-}
-
-/** YYYY-MM-DD in an IANA timezone ("en-CA" formats dates that way). */
-export function todayIn(timezone: string, now = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
-}
-
 function dateErrors(from: string, until: string | null): FieldError[] {
   return until !== null && until < from
     ? [
@@ -304,72 +275,6 @@ function dateErrors(from: string, until: string | null): FieldError[] {
         },
       ]
     : [];
-}
-
-/**
- * Quantity in kg via the unit's fixed factor (kg, g, t) or the organisation's own weight for
- * this item (ADR-017). Refuses units with no weight rather than guessing one.
- */
-async function kilograms(
-  tx: Transaction,
-  knownUnits: { code: string; kgFactor: string | null }[],
-  item: typeof catalogueItems.$inferSelect,
-  unitCode: string,
-  quantity: string,
-): Promise<string> {
-  const unit = knownUnits.find((u) => u.code === unitCode);
-  if (!unit) {
-    throw AppError.validation([
-      { path: 'unitCode', code: 'unknown', message: `Unknown unit "${unitCode}"` },
-    ]);
-  }
-  let kgPerUnit = unit.kgFactor;
-  if (kgPerUnit === null) {
-    const [own] = await tx
-      .select()
-      .from(catalogueItemUnits)
-      .where(
-        and(
-          eq(catalogueItemUnits.catalogueItemId, item.id),
-          eq(catalogueItemUnits.unitCode, unitCode),
-        ),
-      );
-    kgPerUnit = own?.kgPerUnit ?? null;
-  }
-  if (kgPerUnit === null) {
-    throw AppError.validation([
-      {
-        path: 'unitCode',
-        code: 'no_weight',
-        message: `Record how many kg a ${unit.code} of ${item.name} weighs in the catalogue first`,
-      },
-    ]);
-  }
-  const kg = toKilograms(quantity, kgPerUnit);
-  if (!/[1-9]/.test(kg)) {
-    throw AppError.validation([
-      { path: 'quantity', code: 'too_small', message: 'Less than 1 gram; check the quantity' },
-    ]);
-  }
-  return kg;
-}
-
-function priceToMinor(amount: string, currency: string, settings: OrgSettings): bigint {
-  const minorUnits = settings.minorUnits.get(currency) ?? 2;
-  try {
-    return toMinor(amount, minorUnits);
-  } catch {
-    throw AppError.validation([
-      {
-        path: 'askingPrice',
-        code: 'too_precise',
-        message:
-          minorUnits === 0
-            ? `${currency} amounts have no decimals`
-            : `${currency} amounts have at most ${minorUnits} decimals`,
-      },
-    ]);
-  }
 }
 
 function toDto(row: SupplyRow, settings: OrgSettings): SupplyRecord {
@@ -387,7 +292,7 @@ function toDto(row: SupplyRow, settings: OrgSettings): SupplyRecord {
     askingPrice:
       row.askingPriceMinor === null || row.currency === null
         ? null
-        : formatMinor(row.askingPriceMinor, settings.minorUnits.get(row.currency) ?? 2),
+        : formatMoney(row.askingPriceMinor, row.currency, settings),
     currency: row.currency,
     location: row.location,
     notes: row.notes,

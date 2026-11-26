@@ -64,6 +64,20 @@
       "when": 1795675753100,
       "tag": "0008_supply_records_force_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795682521960,
+      "tag": "0009_purchases_and_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795682524991,
+      "tag": "0010_purchases_inventory_rls_append_only",
+      "breakpoints": true
     }
   ]
 }

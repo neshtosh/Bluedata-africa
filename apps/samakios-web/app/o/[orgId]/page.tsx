@@ -12,32 +12,56 @@ import {
   IconPurchases,
   KpiTile,
 } from '@blue/ui';
+import { endpoints } from '@blue/contracts';
+import { useApi } from '@blue/web-shell';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { grouped } from '../../lib/numbers';
 import { useMembership } from './organisation-context';
 
 const NEXT_STEPS = [
   {
-    title: 'Record your first purchase',
-    detail: 'Spot purchases at the landing site, by kg, basin or piece.',
-  },
-  {
-    title: 'Track stock by batch',
-    detail: 'Every purchase creates a batch with its cost, origin and catch date.',
-  },
-  {
     title: 'Sell and get paid',
     detail: 'Sales from batches, invoices, mobile-money references and balances.',
+  },
+  {
+    title: 'Payments, advances and expenses',
+    detail: 'What you owe suppliers, what buyers owe you, and your margins.',
+  },
+  {
+    title: 'Record purchases offline',
+    detail: 'Capture spot purchases at the landing site without a connection.',
   },
 ];
 
 /**
- * Operational overview. SamakiOS modules arrive in Phase 3, so every figure is an explicit
- * "no data yet" — never a placeholder number that could be mistaken for a real one.
+ * Operational overview. Figures come from the organisation's own records; anything not
+ * recorded yet is an explicit "no data yet", never a placeholder number.
  */
 export default function DashboardPage() {
-  const { organisation, roles } = useMembership();
+  const { organisation, roles, permissions } = useMembership();
+  const api = useApi();
   const currency = organisation.defaultCurrency;
   const base = `/o/${organisation.id}`;
+  const stock = useQuery({
+    queryKey: ['orgs', organisation.id, 'inventory', 'summary'],
+    queryFn: () => api.call(endpoints.inventory.summary, { params: { orgId: organisation.id } }),
+    enabled: permissions.includes('samakios.inventory.read'),
+  });
+  const recent = useQuery({
+    queryKey: ['orgs', organisation.id, 'purchases', { recent: true }],
+    queryFn: () =>
+      api.call(endpoints.purchases.list, { params: { orgId: organisation.id }, query: {} }),
+    enabled: permissions.includes('samakios.purchases.read'),
+  });
+  const items = useQuery({
+    queryKey: ['orgs', organisation.id, 'catalogue'],
+    queryFn: () =>
+      api.call(endpoints.catalogue.list, { params: { orgId: organisation.id }, query: {} }),
+  });
+  const itemName = (id: string) => items.data?.find((i) => i.id === id)?.name ?? '—';
+  const hasStock = Boolean(stock.data && stock.data.items.length > 0);
+  const week = stock.data?.purchasesLast7Days;
 
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
@@ -62,12 +86,12 @@ export default function DashboardPage() {
       <section aria-label="Main actions" className="grid gap-5 md:grid-cols-3">
         <ActionCard
           tone="blue"
-          art="petals"
-          title="Suppliers & buyers"
-          description="Fishers, BMUs, farms, buyers and transporters you work with."
+          art="waves"
+          title="Purchases"
+          description="Record what you buy at the landing site; it goes straight into stock."
           action={
             <Button variant="onColor" size="sm" asChild>
-              <Link href={`${base}/partners`}>Open</Link>
+              <Link href={`${base}/purchases`}>Record purchase</Link>
             </Button>
           }
         />
@@ -75,21 +99,21 @@ export default function DashboardPage() {
           tone="cyan"
           art="layers"
           title="Supply"
-          description="Record fish a supplier has now or expects soon."
+          description="Fish your suppliers have now or expect soon."
           action={
             <Button variant="onColor" size="sm" asChild>
-              <Link href={`${base}/supply`}>Record supply</Link>
+              <Link href={`${base}/supply`}>See offers</Link>
             </Button>
           }
         />
         <ActionCard
           tone="green"
           art="stack"
-          title="Catalogue"
-          description="What you trade, and how much your basins and crates weigh."
+          title="Inventory"
+          description="Stock on hand by batch, with its origin and cost."
           action={
             <Button variant="onColor" size="sm" asChild>
-              <Link href={`${base}/catalogue`}>Open</Link>
+              <Link href={`${base}/inventory`}>Open</Link>
             </Button>
           }
         />
@@ -98,15 +122,19 @@ export default function DashboardPage() {
       <section aria-label="Key figures" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile
           label="Stock on hand"
-          value={null}
+          value={hasStock && stock.data ? grouped(stock.data.onHandKg) : null}
           unit="kg"
-          footnote="No inventory recorded yet"
+          footnote={
+            hasStock && stock.data
+              ? `Cost ${currency} ${grouped(stock.data.onHandCost)}`
+              : 'No stock received yet'
+          }
         />
         <KpiTile
           label="Purchases · 7 days"
-          value={null}
+          value={week && week.count > 0 ? grouped(week.total) : null}
           unit={currency}
-          footnote="No purchases recorded yet"
+          footnote={week && week.count > 0 ? `${week.count} received` : 'No purchases this week'}
         />
         <KpiTile
           label="Sales · 7 days"
@@ -120,14 +148,45 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Card>
           <CardHeader
-            title="Recent activity"
-            description="Purchases, sales, deliveries and stock movements."
+            title="Recent purchases"
+            description="The latest purchases, received or planned."
+            actions={
+              <Link
+                href={`${base}/purchases`}
+                className="text-[13px] font-semibold text-accent hover:underline"
+              >
+                All purchases
+              </Link>
+            }
           />
-          <EmptyState
-            icon={<IconPurchases />}
-            title="Nothing recorded yet"
-            description="Purchases, sales and stock movements will appear here as your team records them."
-          />
+          {recent.data && recent.data.length > 0 ? (
+            <ul className="divide-y divide-mist-100">
+              {recent.data.slice(0, 5).map((purchase) => (
+                <li key={purchase.id} className="flex items-center gap-4 px-6 py-3 text-[13px]">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-mist-900">{purchase.number}</p>
+                    <p className="truncate text-[12px] text-mist-500">
+                      {purchase.purchaseDate} ·{' '}
+                      {purchase.lines.map((l) => itemName(l.catalogueItemId)).join(', ')}
+                    </p>
+                  </div>
+                  <span className="tabular text-mist-700">{grouped(purchase.totalKg)} kg</span>
+                  <span className="tabular w-32 text-right font-medium text-mist-900">
+                    {purchase.currency} {grouped(purchase.total)}
+                  </span>
+                  <Badge tone={purchase.status === 'confirmed' ? 'success' : 'neutral'}>
+                    {purchase.status === 'confirmed' ? 'Received' : purchase.status}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              icon={<IconPurchases />}
+              title="No purchases yet"
+              description="Purchases appear here as your team records them."
+            />
+          )}
         </Card>
         <Card>
           <CardHeader title="Getting started" description="What arrives next in SamakiOS." />
@@ -153,15 +212,33 @@ export default function DashboardPage() {
       </div>
 
       <Card>
-        <CardHeader
-          title="Stock by species"
-          description="Kilograms on hand by species and product form."
-        />
-        <EmptyState
-          icon={<IconInventory />}
-          title="No stock yet"
-          description="Stock appears once purchases are received into inventory."
-        />
+        <CardHeader title="Stock by item" description="Kilograms on hand by catalogue item." />
+        {hasStock && stock.data ? (
+          <ul className="divide-y divide-mist-100">
+            {stock.data.items.map((item) => (
+              <li
+                key={item.catalogueItemId}
+                className="flex items-center gap-4 px-6 py-3 text-[13px]"
+              >
+                <span className="min-w-0 flex-1 truncate font-medium text-mist-900">
+                  {itemName(item.catalogueItemId)}
+                </span>
+                <span className="text-[12px] text-mist-500">
+                  {item.batches} {item.batches === 1 ? 'batch' : 'batches'}
+                </span>
+                <span className="tabular w-28 text-right font-semibold text-mist-900">
+                  {grouped(item.onHandKg)} kg
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState
+            icon={<IconInventory />}
+            title="No stock yet"
+            description="Stock appears once purchases are received into inventory."
+          />
+        )}
       </Card>
     </div>
   );

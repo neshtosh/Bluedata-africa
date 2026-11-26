@@ -81,6 +81,17 @@ test.describe.serial('platform journey', () => {
     await expect(offerRow).toContainText('Available');
     await offerRow.getByRole('button', { name: 'Reserve' }).click();
     await expect(offerRow).toContainText('Reserved');
+
+    // Buy the offer: the purchase form opens pre-filled; receiving it puts 40 kg in stock.
+    await offerRow.getByRole('link', { name: 'Buy' }).click();
+    await page.getByLabel(/Price per kilogram/).fill('320');
+    await expect(page.getByText('Total KES 12,800.00')).toBeVisible();
+    await page.getByRole('button', { name: 'Record purchase' }).click();
+    const purchaseRow = page.getByRole('row', { name: /PO-\d{4}-000001/ });
+    await expect(purchaseRow).toContainText('KES 12,800.00');
+    await expect(purchaseRow).toContainText('Received');
+    await page.getByRole('link', { name: 'Inventory' }).click();
+    await expect(page.getByRole('row', { name: /B-\d{4}-000001/ })).toContainText('40 kg');
   });
 
   test('the same session opens BlueData without signing in again, and sign-out ends both', async ({
