@@ -188,6 +188,7 @@ corepack pnpm test
 - Pilot: setup links prove identity only as well as the person who sends them; acceptable while every pilot user is known personally. Phone numbers set up this way are not marked verified.
 - Pilot: an organisation owner can't reset a staff member's forgotten password; the operator does it with `pilot.ps1 link`.
 - Pilot: the laptop is a single point of failure; backups are nightly (no point-in-time recovery).
+- Fixed: CI typecheck of a web app could fail when Turborepo ran `next build` and `next typegen` for it at the same time (both write `.next/types`). `apps/*/turbo.json` now makes each app's typecheck wait for its build.
 - On phones, wide tables (partners, supply, catalogue) scroll sideways inside their panel; card-style rows for small screens would read better and are a later polish.
 - The reference design's search and notification icons were left out on purpose: there is no global search or notifications yet, and the UI should not show controls that do nothing.
 - `module-graph.test.ts` exceeded its 60 s budget once when the whole pipeline was building alongside it; the budget is now 180 s.
