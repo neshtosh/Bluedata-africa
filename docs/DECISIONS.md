@@ -25,6 +25,7 @@ All ADRs below were **Accepted** by the founder on 2026-11-03 (end of Phase 1). 
 | ADR-016 | Contract-first endpoint registry; OpenAPI generated from it; client typed from it (no codegen) | Accepted (2026-11-03, increment 2.5) | — |
 | ADR-017 | Container and count unit weights are per organisation, per catalogue item | Accepted (2026-11-03, increment 3.1) | — |
 | ADR-018 | System role permissions are read from the code registry, not stored | Accepted (2026-11-03, increment 3.1) | — |
+| ADR-019 | Pilot runs at zero cost on the founder's laptop behind a Cloudflare Tunnel; SMS deferred until funded | Accepted (2026-11-26; revised the same day from an Oracle free VM) | Yes |
 
 ---
 
@@ -175,3 +176,20 @@ Permissions stay in the API (`@RequirePermission`), not in contracts.
 **Consequences.**
 - + Every deploy's permission changes reach every organisation immediately, with no data migration.
 - − Organisations can't customise system roles; they create custom roles instead (Phase 3+, when needed).
+
+## ADR-019 — Pilot runs at zero cost on the founder's laptop behind a Cloudflare Tunnel; SMS deferred until funded
+
+**Context.** The founder wants a working MVP and pilot without spending money until funding arrives. The AWS af-south-1 staging setup (ADR-010) costs roughly 150–210 USD/month, and no SMS provider delivers real messages for free. An Oracle Always Free VM was chosen first, then dropped the same day in favour of the founder's own laptop.
+**Decision.**
+- The pilot stack (PostgreSQL + PostGIS, Valkey, API, worker, both web apps, from the existing Docker images) runs on the founder's laptop under Docker Desktop, as a **separate Compose project with its own volumes and ports**, so development resets can never touch pilot data.
+- It is reached from the internet through a Cloudflare Tunnel (outbound only: no open ports, HTTPS provided by Cloudflare). Each web app forwards `/v1` to the API, so the browser talks to one origin per app and no CORS or cross-site cookie setup is needed.
+- Nightly `pg_dump` backups are copied off the laptop. The founder accepted (2026-11-26) that pilot data lives on this machine without point-in-time recovery.
+- Until SMS is funded, accounts are set up through one-time setup links that the inviter shares (for example on WhatsApp), and people sign in daily with phone number and password (already built). Phone OTP switches back on when a provider is contracted.
+- Without a domain, Cloudflare's free quick-tunnel addresses change on every restart and the two apps need separate sign-ins. A domain on Cloudflare later gives fixed addresses and restores single sign-on through `COOKIE_DOMAIN`.
+- The AWS configuration in `infra/terraform` stays maintained but unapplied; it is the post-funding path.
+**Consequences.**
+- + No running cost, no cloud account; data stays on hardware the founder controls.
+- + No code is thrown away: the same images run on the laptop and later on AWS.
+- − The pilot is only up while the laptop is on, awake, online and running Docker; power cuts and travel take it down.
+- − Pilot data on a laptop that can be lost or stolen: disk encryption (BitLocker) and off-machine backups are required, not optional.
+- − Setup links put identity verification on the inviter, which is acceptable only while the pilot users are known personally.

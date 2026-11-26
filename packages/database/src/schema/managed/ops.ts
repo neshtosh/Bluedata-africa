@@ -2,8 +2,11 @@
 // every row, RLS on every table, composite foreign keys so rows can't reference another tenant.
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
+  char,
   check,
+  date,
   foreignKey,
   index,
   numeric,
@@ -23,7 +26,7 @@ import {
   updatedAt,
   version,
 } from '../columns.js';
-import { productForms, species, units } from './ref.js';
+import { currencies, productForms, species, units } from './ref.js';
 import { organisations } from './tenancy.js';
 
 export const ops = pgSchema('ops');
@@ -162,6 +165,77 @@ export const partnerSpecies = ops.table(
       columns: [t.organisationId, t.partnerId],
       foreignColumns: [tradingPartners.organisationId, tradingPartners.id],
     }).onDelete('cascade'),
+    tenantIsolationPolicy(t.organisationId),
+  ],
+);
+
+export const SUPPLY_ORIGINS = ['wild', 'farmed'] as const;
+/**
+ * `purchased` is set only by purchases (3.4). "Expired" is not stored: an available or reserved
+ * record whose `available_until` has passed is shown as expired, so no scheduled job is needed.
+ */
+export const SUPPLY_STATUSES = ['available', 'reserved', 'purchased', 'withdrawn'] as const;
+
+/**
+ * Fish a supplier has, or expects to have (DATABASE.md §3.5): "record fish availability" for
+ * wild landings and farm harvests. Quantity is kept as entered (2 basins) and in kilograms,
+ * converted with the organisation's unit weights at the time it was recorded (ADR-017).
+ * Location is free text until the geographic registry (Phase 4) adds `site_id`.
+ */
+export const supplyRecords = ops.table(
+  'supply_records',
+  {
+    id: idColumn(),
+    organisationId: uuid('organisation_id')
+      .notNull()
+      .references(() => organisations.id),
+    partnerId: uuid('partner_id').notNull(),
+    catalogueItemId: uuid('catalogue_item_id').notNull(),
+    origin: text('origin', { enum: SUPPLY_ORIGINS }).notNull(),
+    quantity: numeric('quantity', { precision: 14, scale: 3 }).notNull(),
+    unitCode: text('unit_code')
+      .notNull()
+      .references(() => units.code),
+    quantityKg: numeric('quantity_kg', { precision: 14, scale: 3 }).notNull(),
+    /** Landing or harvest date, or the date the fish is expected. */
+    availableFrom: date('available_from').notNull(),
+    availableUntil: date('available_until'),
+    /** Asking price per `unit_code`, in minor units of `currency`. */
+    askingPriceMinor: bigint('asking_price_minor', { mode: 'bigint' }),
+    currency: char('currency', { length: 3 }).references(() => currencies.code),
+    location: text('location'),
+    notes: text('notes'),
+    status: text('status', { enum: SUPPLY_STATUSES }).notNull().default('available'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    version: version(),
+  },
+  (t) => [
+    unique('supply_records_org_id_key').on(t.organisationId, t.id),
+    foreignKey({
+      name: 'supply_records_partner_fk',
+      columns: [t.organisationId, t.partnerId],
+      foreignColumns: [tradingPartners.organisationId, tradingPartners.id],
+    }),
+    foreignKey({
+      name: 'supply_records_item_fk',
+      columns: [t.organisationId, t.catalogueItemId],
+      foreignColumns: [catalogueItems.organisationId, catalogueItems.id],
+    }),
+    check('supply_records_origin_valid', oneOf(t.origin, SUPPLY_ORIGINS)),
+    check('supply_records_status_valid', oneOf(t.status, SUPPLY_STATUSES)),
+    check('supply_records_quantity_positive', sql`${t.quantity} > 0 and ${t.quantityKg} > 0`),
+    check(
+      'supply_records_dates_ordered',
+      sql`${t.availableUntil} is null or ${t.availableUntil} >= ${t.availableFrom}`,
+    ),
+    check(
+      'supply_records_price_has_currency',
+      sql`(${t.askingPriceMinor} is null) = (${t.currency} is null) and (${t.askingPriceMinor} is null or ${t.askingPriceMinor} >= 0)`,
+    ),
+    index('supply_records_org_status_idx').on(t.organisationId, t.status, t.availableFrom),
+    index('supply_records_org_partner_idx').on(t.organisationId, t.partnerId),
+    index('supply_records_org_item_idx').on(t.organisationId, t.catalogueItemId),
     tenantIsolationPolicy(t.organisationId),
   ],
 );

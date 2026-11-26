@@ -61,7 +61,7 @@ export default function CataloguePage() {
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-mist-900">Catalogue</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.02em] text-mist-900">Catalogue</h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
           What you buy and sell, and how much your own basins, tins and crates weigh. Every purchase
           and sale is converted to kilograms through these weights.
@@ -173,7 +173,7 @@ function CatalogueTable({
                     </td>
                     {canManage ? (
                       <td className="px-5 py-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => void archive(item)}>
+                        <Button variant="secondary" size="sm" onClick={() => void archive(item)}>
                           Archive
                         </Button>
                       </td>

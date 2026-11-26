@@ -23,6 +23,7 @@ import { ReferenceModule } from './platform/reference/reference.module.js';
 import { TenancyModule } from './platform/tenancy/tenancy.module.js';
 import { CatalogueModule } from './samakios/catalogue/catalogue.module.js';
 import { PartnersModule } from './samakios/partners/partners.module.js';
+import { SupplyModule } from './samakios/supply/supply.module.js';
 
 /**
  * Root of the API process. Module groups (platform, samakios, bluedata) are added here as they
@@ -55,6 +56,7 @@ export class AppModule {
         // SamakiOS modules (must never import BlueData modules).
         CatalogueModule,
         PartnersModule,
+        SupplyModule,
         // The API description is public knowledge for partners, but production doesn't serve it.
         ...(config.NODE_ENV === 'production' ? [] : [OpenApiModule]),
         ...extraModules,

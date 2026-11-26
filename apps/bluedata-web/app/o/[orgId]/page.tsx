@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ActionCard,
   Badge,
   Card,
   CardBody,
@@ -49,7 +50,7 @@ export default function OverviewPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-mist-900">
+        <h1 className="text-2xl font-bold tracking-[-0.02em] text-mist-900">
           Fisheries intelligence
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-mist-500">
@@ -57,6 +58,28 @@ export default function OverviewPage() {
           figure with its source and how much to trust it.
         </p>
       </div>
+
+      {/* Module previews: no actions until each module exists, so nothing here pretends to work. */}
+      <section aria-label="Modules" className="grid gap-5 md:grid-cols-3">
+        <ActionCard
+          tone="blue"
+          art="waves"
+          title="Market prices"
+          description="Wholesale and landing prices by species and market. Starts with field price collection."
+        />
+        <ActionCard
+          tone="cyan"
+          art="layers"
+          title="Fisheries map"
+          description="Landing sites, markets and farms around Lake Victoria. Arrives in Phase 4."
+        />
+        <ActionCard
+          tone="violet"
+          art="petals"
+          title="Forecasts"
+          description="Supply and price outlooks with uncertainty ranges. Arrives in Phase 6."
+        />
+      </section>
 
       <section aria-label="Headline indicators" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile
@@ -102,7 +125,9 @@ export default function OverviewPage() {
                   key={item.label}
                   className="flex flex-col gap-1 border-b border-mist-100 py-3 last:border-0"
                 >
-                  <Badge tone={item.tone}>{item.label}</Badge>
+                  <Badge tone={item.tone} className="self-start">
+                    {item.label}
+                  </Badge>
                   <p className="text-[12px] leading-5 text-mist-500">{item.meaning}</p>
                 </li>
               ))}

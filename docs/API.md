@@ -94,7 +94,7 @@ Every endpoint declares: required permission key, required product entitlement (
 |---|---|---|
 | Trading partners | `GET/POST /partners`, `PATCH /partners/{id}` (edit, or `archived: true/false`) — **built in 3.2**. Planned: `GET /partners/{id}/statement` | Filters: `role=supplier\|buyer\|transporter`, `speciesId`, `q` (name or phone digits), `includeArchived`. Planned: `siteId` |
 | Catalogue items | `GET/POST /catalogue-items`, `PATCH /catalogue-items/{id}` | species × form × grade × size |
-| Supply records | `GET/POST /supply-records`, `POST /supply-records/{id}/expire` | wild vs farmed origin |
+| Supply records | `GET/POST /supply-records`, `PATCH /supply-records/{id}` (edit; `status` available / reserved / withdrawn) — **built in 3.3**. Expiry is derived from `availableUntil`, so there is no expire endpoint | Filters: `state=open\|closed\|all`, `partnerId`, `catalogueItemId`, `origin=wild\|farmed` |
 | Catch records | `GET/POST /catch-records` | coop/BMU/fisher orgs |
 | Harvest records | `GET/POST /harvest-records` | farm orgs |
 | Purchases | `GET/POST /purchases`, `PATCH /purchases/{id}` (draft only), `POST /purchases/{id}/confirm`, `POST /purchases/{id}/cancel` | Confirm creates batches & stock. `POST /purchases` with `"confirm": true` = spot purchase in one call (offline-friendly) |

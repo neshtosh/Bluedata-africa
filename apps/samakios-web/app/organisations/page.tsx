@@ -16,7 +16,7 @@ export default function OrganisationsPage() {
     <SessionGate onSignedOut={toSignIn}>
       {(me) => (
         <div className="min-h-dvh">
-          <header className="flex h-14 items-center justify-between bg-navy-900 px-4 lg:px-8">
+          <header className="flex h-16 items-center justify-between bg-accent px-4 lg:px-8">
             <Brand />
             <Button variant="inverse" size="sm" onClick={() => void signOut()}>
               {t('switcher.signOut')}

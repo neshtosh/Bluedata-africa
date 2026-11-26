@@ -42,7 +42,7 @@ describe('Button', () => {
         <a href="/x">Go</a>
       </Button>,
     );
-    expect(screen.getByRole('link', { name: 'Go' }).className).toContain('rounded-md');
+    expect(screen.getByRole('link', { name: 'Go' }).className).toContain('rounded-lg');
   });
 });
 

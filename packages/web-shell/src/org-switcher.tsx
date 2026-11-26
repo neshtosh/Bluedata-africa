@@ -47,10 +47,10 @@ export function OrgSwitcher({
   return (
     <Menu>
       <MenuTrigger
-        className="flex h-9 max-w-[280px] items-center gap-2.5 rounded-md px-2 text-left hover:bg-mist-50"
+        className="flex h-11 max-w-[300px] items-center gap-2.5 rounded-full bg-mist-0 py-1 pl-1 pr-3 text-left shadow-raised hover:bg-mist-25"
         aria-label={t('switcher.label')}
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-navy-800 text-[11px] font-semibold text-white">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-semibold text-white">
           {initials}
         </span>
         <span className="hidden min-w-0 flex-col leading-tight sm:flex">

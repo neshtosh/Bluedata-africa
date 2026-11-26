@@ -2,12 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from './cn.js';
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn('rounded-lg bg-mist-0 shadow-raised ring-1 ring-mist-100', className)}
-      {...props}
-    />
-  );
+  return <div className={cn('rounded-2xl bg-mist-0 shadow-raised', className)} {...props} />;
 }
 
 export function CardHeader({
@@ -24,12 +19,12 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-4 border-b border-mist-100 px-5 py-4',
+        'flex items-start justify-between gap-4 border-b border-mist-100 px-6 py-5',
         className,
       )}
     >
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-mist-900">{title}</h2>
+        <h2 className="text-[16px] font-bold tracking-[-0.01em] text-mist-900">{title}</h2>
         {description ? <p className="mt-0.5 text-[13px] text-mist-500">{description}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
@@ -38,7 +33,7 @@ export function CardHeader({
 }
 
 export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('px-5 py-4', className)} {...props} />;
+  return <div className={cn('px-6 py-5', className)} {...props} />;
 }
 
 export type BadgeTone =
@@ -88,7 +83,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-sm px-1.5 text-[12px] font-medium',
+        'inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-[12px] font-medium',
         badgeTones[tone],
         className,
       )}
@@ -111,7 +106,7 @@ export function Alert({
   className?: string;
 }) {
   const tones = {
-    neutral: 'bg-mist-50 text-mist-800 ring-mist-200',
+    neutral: 'bg-accent-soft text-mist-800 ring-accent/20',
     danger: 'bg-danger-50 text-danger-700 ring-danger-600/25',
     warning: 'bg-warning-50 text-warning-700 ring-warning-500/30',
     success: 'bg-success-50 text-success-700 ring-teal-600/25',
@@ -119,7 +114,7 @@ export function Alert({
   return (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
-      className={cn('rounded-md px-3.5 py-3 text-[13px] ring-1 ring-inset', tones[tone], className)}
+      className={cn('rounded-xl px-4 py-3 text-[13px] ring-1 ring-inset', tones[tone], className)}
     >
       {title ? <p className="font-semibold">{title}</p> : null}
       {children ? <div className={title ? 'mt-0.5' : undefined}>{children}</div> : null}
@@ -142,8 +137,8 @@ export function KpiTile({
   className?: string;
 }) {
   return (
-    <Card className={cn('px-4 py-3.5', className)}>
-      <p className="text-[12px] font-medium uppercase tracking-[0.06em] text-mist-500">{label}</p>
+    <Card className={cn('px-5 py-4', className)}>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-mist-500">{label}</p>
       <p className="tabular mt-2 flex items-baseline gap-1.5">
         {value === null ? (
           <span className="text-2xl font-semibold text-mist-300" aria-label="No data yet">
@@ -175,7 +170,7 @@ export function EmptyState({
   return (
     <div className={cn('flex flex-col items-center px-6 py-10 text-center', className)}>
       {icon ? (
-        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+        <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">
           {icon}
         </div>
       ) : null}

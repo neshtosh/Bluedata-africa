@@ -2,7 +2,7 @@ import { ProductWordmark } from '@blue/ui';
 
 export const PRODUCT = 'samakios' as const;
 
-export function Brand({ on = 'dark' }: { on?: 'dark' | 'light' }) {
+export function Brand({ on = 'accent' }: { on?: 'accent' | 'dark' | 'light' }) {
   return <ProductWordmark name="SamakiOS" subtitle="Fisheries operations" on={on} />;
 }
 

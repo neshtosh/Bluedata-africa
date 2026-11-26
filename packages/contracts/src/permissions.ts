@@ -38,6 +38,14 @@ export const PERMISSIONS = {
     product: 'samakios',
     description: 'Add, edit and archive suppliers, buyers and transporters',
   },
+  'samakios.supply.read': {
+    product: 'samakios',
+    description: 'View fish that suppliers have or expect to have',
+  },
+  'samakios.supply.manage': {
+    product: 'samakios',
+    description: 'Record, reserve and withdraw supply offers',
+  },
   'samakios.catalogue.manage': {
     product: 'samakios',
     description: 'Add, edit and archive catalogue items and their unit weights',

@@ -19,7 +19,9 @@ import {
   CardHeader,
   EmptyState,
   Field,
+  FolderTabs,
   IconPartners,
+  IconPlus,
   Input,
   Select,
   Spinner,
@@ -106,20 +108,13 @@ export default function PartnersPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-mist-900">
-            Suppliers & buyers
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-mist-500">
-            The people and businesses you buy from, sell to and move fish with. One record per
-            partner, even when they are both a supplier and a buyer. Only your organisation sees
-            this list.
-          </p>
-        </div>
-        {canManage && editing === null ? (
-          <Button onClick={() => setEditing('new')}>Add partner</Button>
-        ) : null}
+      <div>
+        <h1 className="text-2xl font-bold tracking-[-0.02em] text-mist-900">Suppliers & buyers</h1>
+        <p className="mt-1 max-w-2xl text-sm text-mist-500">
+          The people and businesses you buy from, sell to and move fish with. One record per
+          partner, even when they are both a supplier and a buyer. Only your organisation sees this
+          list.
+        </p>
       </div>
 
       {editing !== null ? (
@@ -131,14 +126,19 @@ export default function PartnersPage() {
         />
       ) : null}
 
-      <Card>
-        <CardHeader
-          title="Partners"
-          description={`${partners.data.length} ${filtered ? 'matching' : 'active'}`}
+      <div>
+        <FolderTabs
+          label="Role"
+          value={role === '' ? 'all' : role}
+          onChange={(next) => setRole(next === 'all' ? '' : next)}
+          options={[
+            { value: 'all', label: 'All partners' },
+            ...PARTNER_ROLES.map((r) => ({ value: r, label: `${ROLE_LABELS[r]}s` })),
+          ]}
         />
-        <CardBody>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_auto] lg:items-end">
-            <Field label="Search">
+        <Card className="rounded-tl-none">
+          <CardBody className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-mist-100">
+            <Field label="Search" layout="inline" className="w-full sm:w-[300px]">
               <Input
                 type="search"
                 placeholder="Name or phone number"
@@ -146,17 +146,7 @@ export default function PartnersPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Field>
-            <Field label="Role">
-              <Select value={role} onChange={(e) => setRole(e.target.value as PartnerRole | '')}>
-                <option value="">All roles</option>
-                {PARTNER_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}s
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Species">
+            <Field label="Species" layout="inline" className="w-full sm:w-[260px]">
               <Select value={speciesId} onChange={(e) => setSpeciesId(e.target.value)}>
                 <option value="">Any species</option>
                 {vocabulary.data.species.map((s) => (
@@ -166,7 +156,7 @@ export default function PartnersPage() {
                 ))}
               </Select>
             </Field>
-            <label className="flex h-9 items-center gap-2 text-[13px] text-mist-700">
+            <label className="flex h-10 items-center gap-2 text-[13px] text-mist-700">
               <input
                 type="checkbox"
                 checked={includeArchived}
@@ -174,27 +164,33 @@ export default function PartnersPage() {
               />
               Show archived
             </label>
-          </div>
-        </CardBody>
-        {partners.data.length === 0 ? (
-          <EmptyState
-            icon={<IconPartners />}
-            title={filtered ? 'No partners match' : 'No partners yet'}
-            description={
-              filtered
-                ? 'Try a different name, role or species.'
-                : 'Add the fishers, farmers, BMUs, buyers and transporters you work with.'
-            }
-          />
-        ) : (
-          <PartnersTable
-            partners={partners.data}
-            vocabulary={vocabulary.data}
-            canManage={canManage}
-            onEdit={setEditing}
-          />
-        )}
-      </Card>
+            {canManage && editing === null ? (
+              <Button className="ml-auto" onClick={() => setEditing('new')}>
+                <IconPlus className="size-4" />
+                Add partner
+              </Button>
+            ) : null}
+          </CardBody>
+          {partners.data.length === 0 ? (
+            <EmptyState
+              icon={<IconPartners />}
+              title={filtered ? 'No partners match' : 'No partners yet'}
+              description={
+                filtered
+                  ? 'Try a different name, role or species.'
+                  : 'Add the fishers, farmers, BMUs, buyers and transporters you work with.'
+              }
+            />
+          ) : (
+            <PartnersTable
+              partners={partners.data}
+              vocabulary={vocabulary.data}
+              canManage={canManage}
+              onEdit={setEditing}
+            />
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
@@ -240,7 +236,7 @@ function PartnersTable({
           <Alert tone="danger">{error}</Alert>
         </CardBody>
       ) : null}
-      <div className="overflow-x-auto border-t border-mist-100">
+      <div className="overflow-x-auto">
         <table className="w-full text-left text-[13px]">
           <thead className="border-b border-mist-100 text-[12px] uppercase tracking-[0.04em] text-mist-500">
             <tr>
@@ -286,10 +282,10 @@ function PartnersTable({
                     : partner.speciesIds.map(speciesName).join(', ')}
                 </td>
                 {canManage ? (
-                  <td className="whitespace-nowrap px-5 py-3 text-right">
+                  <td className="space-x-2 whitespace-nowrap px-5 py-3 text-right">
                     {partner.archived ? (
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="sm"
                         onClick={() => void setArchived(partner, false)}
                       >
@@ -297,11 +293,11 @@ function PartnersTable({
                       </Button>
                     ) : (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(partner)}>
+                        <Button variant="secondary" size="sm" onClick={() => onEdit(partner)}>
                           Edit
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           onClick={() => void setArchived(partner, true)}
                         >

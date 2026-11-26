@@ -65,6 +65,22 @@ test.describe.serial('platform journey', () => {
     await expect(page.getByText('No partners match')).toBeVisible();
     await page.getByLabel('Search').fill(`0733 ${runSuffix}`);
     await expect(partnerRow).toBeVisible();
+
+    // Supply: needs an item in the catalogue, then an offer from that supplier.
+    await page.getByRole('link', { name: 'Catalogue' }).click();
+    await page.getByRole('button', { name: 'Add item' }).click();
+    await expect(page.getByText('1 active')).toBeVisible();
+    await page.getByRole('link', { name: 'Supply' }).click();
+    await page.getByRole('button', { name: 'Record supply' }).click();
+    const supplyForm = page.locator('form');
+    await supplyForm.getByLabel('Quantity').fill('40');
+    await supplyForm.getByLabel('Origin').selectOption('wild');
+    await page.getByRole('button', { name: 'Record supply' }).click();
+    const offerRow = page.getByRole('row', { name: /Dunga Beach BMU/ });
+    await expect(offerRow).toContainText('40 kilogram');
+    await expect(offerRow).toContainText('Available');
+    await offerRow.getByRole('button', { name: 'Reserve' }).click();
+    await expect(offerRow).toContainText('Reserved');
   });
 
   test('the same session opens BlueData without signing in again, and sign-out ends both', async ({

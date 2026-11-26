@@ -16,3 +16,5 @@ export {
   KpiTile,
   type BadgeTone,
 } from './surfaces.js';
+export { ActionCard, type ActionCardArt, type ActionCardTone } from './action-card.js';
+export { FolderTabs, type TabOption } from './tabs.js';

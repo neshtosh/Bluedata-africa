@@ -2,10 +2,10 @@
 
 import { cloneElement, useState, type ReactElement, type ReactNode } from 'react';
 import { cn } from './cn.js';
-import { IconMenu } from './icons.js';
+import { IconChevronDown, IconMenu } from './icons.js';
 
 export interface AppShellProps {
-  /** Product wordmark area at the top of the sidebar. */
+  /** Product wordmark, shown on the blue header of the sidebar. */
   brand: ReactNode;
   /** Sidebar navigation (NavSection / NavItem). */
   navigation: ReactNode;
@@ -19,7 +19,8 @@ export interface AppShellProps {
 }
 
 /**
- * Application frame shared by both products: navy sidebar, white top bar, neutral canvas.
+ * Application frame shared by both products: a dark sidebar floating on the canvas (blue brand
+ * header, blue active item), a transparent top bar, and content in white panels.
  * Below the lg breakpoint the sidebar becomes a drawer opened from the top bar.
  */
 export function AppShell({
@@ -32,17 +33,17 @@ export function AppShell({
 }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const sidebar = (
-    <div className="flex h-full flex-col bg-navy-900 text-mist-200">
-      <div className="flex h-14 items-center px-4">{brand}</div>
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-navy-900 text-mist-200 shadow-overlay">
+      <div className="flex h-16 shrink-0 items-center bg-accent px-5">{brand}</div>
       <nav
         aria-label="Main"
-        className="flex-1 overflow-y-auto px-2 py-3"
+        className="flex-1 overflow-y-auto px-3 py-4 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin]"
         onClick={() => setOpen(false)}
       >
         {navigation}
       </nav>
       {sidebarFooter ? (
-        <div className="border-t border-white/10 px-4 py-3 text-[12px] text-mist-400">
+        <div className="border-t border-white/10 px-5 py-3 text-[12px] text-mist-400">
           {sidebarFooter}
         </div>
       ) : null}
@@ -50,8 +51,10 @@ export function AppShell({
   );
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="hidden lg:sticky lg:top-0 lg:block lg:h-dvh">{sidebar}</aside>
+    <div className="min-h-dvh bg-canvas lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
+      <aside className="hidden lg:sticky lg:top-0 lg:block lg:h-dvh lg:py-4 lg:pl-4">
+        {sidebar}
+      </aside>
 
       {open ? (
         <div
@@ -62,19 +65,19 @@ export function AppShell({
         >
           <button
             type="button"
-            className="absolute inset-0 bg-navy-950/40"
+            className="absolute inset-0 bg-navy-950/50"
             aria-label="Close navigation"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-[260px] shadow-overlay">{sidebar}</div>
+          <div className="absolute inset-y-2 left-2 w-[264px]">{sidebar}</div>
         </div>
       ) : null}
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-mist-100 bg-mist-0/95 px-4 backdrop-blur lg:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 bg-canvas/85 px-4 backdrop-blur lg:px-8">
           <button
             type="button"
-            className="-ml-1 rounded-md p-1.5 text-mist-600 hover:bg-mist-100 lg:hidden"
+            className="-ml-1 rounded-lg p-2 text-mist-600 hover:bg-mist-0 lg:hidden"
             aria-label="Open navigation"
             onClick={() => setOpen(true)}
           >
@@ -85,21 +88,49 @@ export function AppShell({
           </div>
           {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
         </header>
-        <main className="flex-1 px-4 py-6 lg:px-8">{children}</main>
+        <main className="flex-1 px-4 pb-10 pt-2 lg:px-8">{children}</main>
       </div>
     </div>
   );
 }
 
-export function NavSection({ label, children }: { label?: ReactNode; children: ReactNode }) {
+/**
+ * A group of sidebar links. With a label it can be collapsed (open by default); groups
+ * containing the active page cannot be collapsed so you never lose your place.
+ */
+export function NavSection({
+  label,
+  icon,
+  children,
+}: {
+  label?: ReactNode;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(true);
+  if (!label) {
+    return <ul className="mb-3 flex flex-col gap-1">{children}</ul>;
+  }
   return (
-    <div className="mb-4">
-      {label ? (
-        <p className="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-mist-500">
-          {label}
-        </p>
+    <div className="mb-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+        className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-mist-400 hover:text-mist-200"
+      >
+        {icon ? <span className="shrink-0">{icon}</span> : null}
+        <span className="flex-1 text-left">{label}</span>
+        <IconChevronDown
+          className={cn('size-4 shrink-0 transition-transform', open ? '' : '-rotate-90')}
+        />
+      </button>
+      {open ? (
+        <ul className="mt-1 flex flex-col gap-1 rounded-xl bg-white/[0.03] p-1">{children}</ul>
       ) : null}
-      <ul className="flex flex-col gap-0.5">{children}</ul>
     </div>
   );
 }
@@ -123,18 +154,20 @@ export function NavItem({
   const content = (
     <>
       {icon ? (
-        <span className={cn('shrink-0', soon ? 'text-mist-600' : 'opacity-80')}>{icon}</span>
+        <span className={cn('shrink-0', soon ? 'text-mist-600' : active ? '' : 'opacity-75')}>
+          {icon}
+        </span>
       ) : null}
       <span className="min-w-0 flex-1 truncate">{children.props.children}</span>
       {soon ? (
-        <span className="rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-mist-400">
+        <span className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-mist-400">
           {soon}
         </span>
       ) : null}
     </>
   );
   const base =
-    'flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors';
+    'flex h-9 items-center gap-3 rounded-lg px-3 text-[13px] font-medium transition-colors';
   if (soon) {
     return (
       <li>
@@ -151,7 +184,9 @@ export function NavItem({
         {
           className: cn(
             base,
-            active ? 'bg-white/10 text-white' : 'text-mist-300 hover:bg-white/5 hover:text-white',
+            active
+              ? 'bg-accent text-white shadow-accent'
+              : 'text-mist-300 hover:bg-white/[0.06] hover:text-white',
           ),
           'aria-current': active ? 'page' : undefined,
         } as Record<string, unknown>,

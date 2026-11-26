@@ -13,6 +13,12 @@ import {
   VocabularySchema,
 } from './catalogue.js';
 import { Uuid } from './common.js';
+import {
+  CreateSupplyRecordSchema,
+  ListSupplyRecordsQuerySchema,
+  SupplyRecordSchema,
+  UpdateSupplyRecordSchema,
+} from './supply.js';
 import { defineEndpoint } from './endpoint.js';
 import {
   CreateOrganisationSchema,
@@ -285,6 +291,46 @@ export const endpoints = {
       params: z.object({ orgId: Uuid, partnerId: Uuid }),
       body: UpdateTradingPartnerSchema,
       response: TradingPartnerSchema,
+      status: 200,
+    }),
+  },
+
+  supply: {
+    list: defineEndpoint({
+      method: 'GET',
+      path: '/orgs/:orgId/supply-records',
+      summary: 'Fish suppliers have or expect (open offers by default)',
+      tags: ['samakios'],
+      auth: 'session',
+      idempotencyKey: 'none',
+      params: OrgParams,
+      query: ListSupplyRecordsQuerySchema,
+      response: z.array(SupplyRecordSchema),
+      status: 200,
+    }),
+    create: defineEndpoint({
+      method: 'POST',
+      path: '/orgs/:orgId/supply-records',
+      summary: 'Record fish a supplier has or expects to have',
+      tags: ['samakios'],
+      auth: 'session',
+      idempotencyKey: 'required',
+      params: OrgParams,
+      body: CreateSupplyRecordSchema,
+      response: SupplyRecordSchema,
+      status: 201,
+    }),
+    update: defineEndpoint({
+      method: 'PATCH',
+      path: '/orgs/:orgId/supply-records/:supplyRecordId',
+      summary:
+        'Edit, reserve, release or withdraw a supply record (send the version you last read)',
+      tags: ['samakios'],
+      auth: 'session',
+      idempotencyKey: 'none',
+      params: z.object({ orgId: Uuid, supplyRecordId: Uuid }),
+      body: UpdateSupplyRecordSchema,
+      response: SupplyRecordSchema,
       status: 200,
     }),
   },

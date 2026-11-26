@@ -93,7 +93,7 @@ export default function OrganisationLayout({ children }: { children: ReactNode }
                     </NavSection>
                   </>
                 }
-                sidebarFooter={<span>Phase 2 preview · no datasets loaded</span>}
+                sidebarFooter={<span>Preview · no datasets loaded yet</span>}
               >
                 {children}
               </AppShell>

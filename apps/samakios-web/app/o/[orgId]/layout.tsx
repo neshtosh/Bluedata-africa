@@ -8,6 +8,7 @@ import {
   IconLogistics,
   IconPartners,
   IconPrices,
+  IconProduction,
   IconPurchases,
   IconSales,
   IconSettings,
@@ -39,7 +40,9 @@ export default function OrganisationLayout({ children }: { children: ReactNode }
       ? 'Catalogue'
       : pathname.endsWith('/partners')
         ? 'Suppliers & buyers'
-        : 'Dashboard';
+        : pathname.endsWith('/supply')
+          ? 'Supply'
+          : 'Dashboard';
 
   return (
     <SessionGate onSignedOut={toSignIn}>
@@ -79,6 +82,9 @@ export default function OrganisationLayout({ children }: { children: ReactNode }
                       <NavItem icon={<IconPartners />} active={pathname === `${base}/partners`}>
                         <Link href={`${base}/partners`}>Suppliers & buyers</Link>
                       </NavItem>
+                      <NavItem icon={<IconProduction />} active={pathname === `${base}/supply`}>
+                        <Link href={`${base}/supply`}>Supply</Link>
+                      </NavItem>
                       <NavItem icon={<IconPurchases />} soon={soon}>
                         <Link href={base}>Purchases</Link>
                       </NavItem>
@@ -107,7 +113,7 @@ export default function OrganisationLayout({ children }: { children: ReactNode }
                     </NavSection>
                   </>
                 }
-                sidebarFooter={<span>Phase 2 preview · data shown is your own</span>}
+                sidebarFooter={<span>Preview · only your organisation sees this data</span>}
               >
                 {children}
               </AppShell>

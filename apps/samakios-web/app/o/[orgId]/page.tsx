@@ -1,7 +1,9 @@
 'use client';
 
 import {
+  ActionCard,
   Badge,
+  Button,
   Card,
   CardBody,
   CardHeader,
@@ -10,16 +12,13 @@ import {
   IconPurchases,
   KpiTile,
 } from '@blue/ui';
+import Link from 'next/link';
 import { useMembership } from './organisation-context';
 
 const NEXT_STEPS = [
   {
-    title: 'Add suppliers and buyers',
-    detail: 'Fishermen, cooperatives, BMUs, traders and processors you trade with.',
-  },
-  {
     title: 'Record your first purchase',
-    detail: 'Spot purchases at the landing site, by kg, basin or piece — works offline.',
+    detail: 'Spot purchases at the landing site, by kg, basin or piece.',
   },
   {
     title: 'Track stock by batch',
@@ -38,13 +37,14 @@ const NEXT_STEPS = [
 export default function DashboardPage() {
   const { organisation, roles } = useMembership();
   const currency = organisation.defaultCurrency;
+  const base = `/o/${organisation.id}`;
 
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[13px] text-mist-500">Welcome to</p>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-mist-900">
+          <h1 className="text-2xl font-bold tracking-[-0.02em] text-mist-900">
             {organisation.tradingName ?? organisation.legalName}
           </h1>
         </div>
@@ -58,6 +58,42 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      <section aria-label="Main actions" className="grid gap-5 md:grid-cols-3">
+        <ActionCard
+          tone="blue"
+          art="petals"
+          title="Suppliers & buyers"
+          description="Fishers, BMUs, farms, buyers and transporters you work with."
+          action={
+            <Button variant="onColor" size="sm" asChild>
+              <Link href={`${base}/partners`}>Open</Link>
+            </Button>
+          }
+        />
+        <ActionCard
+          tone="cyan"
+          art="layers"
+          title="Supply"
+          description="Record fish a supplier has now or expects soon."
+          action={
+            <Button variant="onColor" size="sm" asChild>
+              <Link href={`${base}/supply`}>Record supply</Link>
+            </Button>
+          }
+        />
+        <ActionCard
+          tone="green"
+          art="stack"
+          title="Catalogue"
+          description="What you trade, and how much your basins and crates weigh."
+          action={
+            <Button variant="onColor" size="sm" asChild>
+              <Link href={`${base}/catalogue`}>Open</Link>
+            </Button>
+          }
+        />
+      </section>
 
       <section aria-label="Key figures" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile

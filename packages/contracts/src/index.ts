@@ -5,5 +5,6 @@ export * from './endpoint.js';
 export * from './endpoints.js';
 export * from './organisations.js';
 export * from './partners.js';
+export * from './supply.js';
 export * from './permissions.js';
 export * from './responses.js';

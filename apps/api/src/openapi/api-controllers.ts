@@ -5,6 +5,7 @@ import { ReferenceController } from '../platform/reference/reference.module.js';
 import { OrganisationsController } from '../platform/tenancy/organisations.controller.js';
 import { CatalogueController } from '../samakios/catalogue/catalogue.module.js';
 import { PartnersController } from '../samakios/partners/partners.module.js';
+import { SupplyController } from '../samakios/supply/supply.module.js';
 import { OpenApiController } from './openapi.controller.js';
 
 /**
@@ -24,6 +25,7 @@ export function apiControllers() {
     ReferenceController,
     CatalogueController,
     PartnersController,
+    SupplyController,
     OpenApiController,
   ] as const;
 }

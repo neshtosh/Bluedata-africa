@@ -1,7 +1,7 @@
 # Project Status
 
 **Current phase:** Phase 3 — SamakiOS MVP (in progress)
-**Last updated:** 2026-11-25
+**Last updated:** 2026-11-26
 
 ## Phase 1 — Technical discovery & architecture ✅
 
@@ -95,8 +95,9 @@ Approved by the founder on 2026-11-03. All 15 ADRs in [DECISIONS.md](DECISIONS.m
 |---|---|---|
 | 3.1 Trading vocabulary: exact decimal/quantity/money primitives; `ref.species` (+ local names), `ref.product_forms`, `ref.units`; `ops` schema with `catalogue_items` and per-organisation `catalogue_item_units` (RLS, FORCE RLS, composite tenant FKs); `GET /v1/ref/vocabulary`; catalogue list/create/update/archive with unit-weight rules, duplicate and stale-version protection, audit and events; SamakiOS **Catalogue** page; permissions `samakios.catalogue.read/manage` | ✅ Done | 10 primitives tests (exact arithmetic, rounding, UGX/RWF minor units); 11 catalogue API tests (vocabulary, unit rules, contract validation, duplicates, 412 on stale edits, archiving, viewer read-only, cross-tenant 404, `PRODUCT_NOT_ENTITLED`); RLS catalogue check extended to `ops`; browser: added "omena, sun-dried, 1 basin = 18.5 kg" through the UI; pipeline 36/36; e2e 3/3 |
 | 3.2 Trading partners: `ops.trading_partners` (one record per party; supplier / buyer / transporter flags; kinds individual, business, cooperative, BMU; optional E.164 phone unique per organisation; production type; free-text landing site) and `ops.partner_species` (RLS, FORCE RLS, composite tenant FK); list with `role`, `speciesId`, `q` (name or phone digits) and `includeArchived` filters; create (idempotent), edit with version check, archive / restore; audit entries carry field names only, never names or phone numbers; SamakiOS **Suppliers & buyers** page (search, filters, add, edit, archive); permissions `samakios.partners.read/manage` | ✅ Done | 11 partner API tests (multi-role create, validation, duplicate phone 409 naming the existing partner, same person in two organisations, filters and literal `%` search, 412 on stale edits, clearing fields, archive, idempotent replay, audit log holds no personal data, viewer read-only, cross-tenant 404); browser: added a BMU by local number, saw the duplicate-phone message, searched by name and phone; e2e journey extended; pipeline 36/36 (99 API tests); e2e 3/3 |
-| 3.3 Supply records (wild/farmed availability) | ⏳ Next | |
-| 3.4 Purchases (incl. spot purchase) → batches → inventory | Pending | |
+| 3.3 Supply records: `ops.supply_records` (supplier, catalogue item, wild/farmed origin, quantity as entered and in kg via the organisation's unit weights, available from/until, asking price per unit in minor units of the organisation's currency, free-text location, status available / reserved / purchased / withdrawn; composite tenant FKs to partners and items; RLS, FORCE RLS); expiry derived from `available_until` in the organisation's timezone (no scheduled job); list (`state` open/closed/all, item, supplier, origin), record, edit, reserve, release, withdraw; SamakiOS **Supply** page with "available now" kg per item | ✅ Done | 10 supply API tests (basin → kg conversion and defaults, fixed mass factors, refusing units without a weight and sub-gram quantities, supplier/item/origin/date rules, UGX without decimals, status changes with 412/409, `purchased` not settable by users, open/closed filters and expiry, viewer read-only, cross-tenant isolation incl. borrowing another tenant's partner, timezone-correct "today"); browser: recorded 3 basins → 55.5 kg at KES 1,800 per basin, reserved it; e2e journey extended (catalogue item → supply → reserve); pipeline 36/36 (109 API tests); e2e 3/3 |
+| 3.3a UI refresh (founder's reference design): soft blue-grey canvas; dark slate sidebar floating with a blue brand header, blue active item and collapsible groups; transparent top bar with a pill organisation menu; white rounded panels; one action blue for both products; outlined blue secondary buttons; folder-style tabs (`FolderTabs`, keyboard arrows); inline filter bars (`Field layout="inline"`); gradient action cards (`ActionCard`, original glass artwork) on both dashboards — BlueData's are previews with no buttons until each module exists; partners and supply use tabs for role / open-closed | ✅ Done | Browser at 1366 px and 375 px (dashboard, supply, partners, sign-in, BlueData overview, mobile drawer); tabs by mouse and arrow keys; UI tests updated; pipeline 36/36; e2e 3/3 |
+| 3.4 Purchases (incl. spot purchase) → batches → inventory | ⏳ Next | |
 | 3.5 Inventory: balances, transfers, adjustments, losses | Pending | |
 | 3.6 Sales orders/quotes, fulfilment from batches, invoices | Pending | |
 | 3.7 Payments, allocations, advances; balances | Pending | |
@@ -171,6 +172,11 @@ corepack pnpm test
 - Partner landing site is free text until the geographic registry exists (Phase 4); the planned `home_site_id` and the consented `linked_organisation_id` link are not built yet.
 - Partner search is a plain substring match (name, or 3+ phone digits). Fuzzy matching (`pg_trgm`) and pagination come when an organisation has enough partners to need them; the list currently returns all matches.
 - Partner statements (`/partners/{id}/statement`) wait for purchases, sales and payments (3.4 to 3.7).
+- Supply records can't yet be edited from the UI (quantity, dates, price); the API supports it. Their location is free text until the geographic registry (Phase 4), and farmed origin isn't checked against a farm site yet.
+- A supply record's kilograms use the item's unit weight at the time it was recorded; changing the catalogue weight later doesn't rewrite existing offers (intended: it is what was offered).
+- The supply list returns every matching record; pagination comes when volumes need it.
+- On phones, wide tables (partners, supply, catalogue) scroll sideways inside their panel; card-style rows for small screens would read better and are a later polish.
+- The reference design's search and notification icons were left out on purpose: there is no global search or notifications yet, and the UI should not show controls that do nothing.
 - `module-graph.test.ts` exceeded its 60 s budget once when the whole pipeline was building alongside it; the budget is now 180 s.
 - No dark mode yet; light theme only.
 - Web apps check the session client-side; the API is the real gate. Server-side rendering of signed-in pages is not needed for SamakiOS and is deferred for BlueData's public pages (Phase 4).
@@ -182,8 +188,8 @@ corepack pnpm test
 
 ## Next recommended step
 
-**Increment 3.3: supply records.** What a supplier says they have or expect (wild landings or farm harvests): partner, catalogue item, quantity and unit, expected date, asking price, status. It is the first table that references both partners and catalogue items, and the first to store quantities and money with the exact-decimal primitives.
+**Increment 3.4: purchases into inventory.** A purchase from a supplier (planned, or a spot purchase confirmed on the spot), optionally fulfilling supply records; confirming it creates batches and stock receipts in kilograms and the amount owed. Purchase numbering per organisation, exact money totals.
 
-Then purchases into batches and inventory (3.4).
+Then the **MVP access and hosting increment** (ADR-019): setup-link sign-in without SMS, a separate pilot stack on the founder's laptop reached through a Cloudflare Tunnel, with off-machine nightly backups.
 
-Staging can be brought up independently whenever the AWS account, domain and repository are ready (`infra/terraform/README.md`).
+The AWS staging configuration stays unapplied until funding (ADR-019); the pilot will run on the founder's laptop.

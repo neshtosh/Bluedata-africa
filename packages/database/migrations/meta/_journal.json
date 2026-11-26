@@ -50,6 +50,20 @@
       "when": 1795604192893,
       "tag": "0006_trading_partners_force_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795675751592,
+      "tag": "0007_supply_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795675753100,
+      "tag": "0008_supply_records_force_rls",
+      "breakpoints": true
     }
   ]
 }
