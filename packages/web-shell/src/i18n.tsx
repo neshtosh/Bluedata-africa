@@ -32,6 +32,27 @@ const en = {
   'signIn.nameSubtitle': 'This number has no account yet. What should we call you?',
   'signIn.displayName': 'Your name',
   'signIn.createAccount': 'Create account',
+  'signIn.passwordSubtitle': 'Use your mobile number and password.',
+  'signIn.password': 'Password',
+  'signIn.signIn': 'Sign in',
+  'signIn.noPassword':
+    'No password yet, or forgotten it? Ask the person who invited you to send you a setup link.',
+  'signIn.usePassword': 'Sign in with a password instead',
+  'signIn.useCode': 'Get a code by SMS instead',
+
+  'setup.title': 'Set up your account',
+  'setup.subtitle':
+    'Choose a password. You will sign in with your mobile number and this password.',
+  'setup.for': 'Account for {phone}',
+  'setup.joining': 'You will join {name}.',
+  'setup.name': 'Your name',
+  'setup.password': 'New password',
+  'setup.passwordHint': 'At least 10 characters. A short sentence is easy to remember.',
+  'setup.confirm': 'Repeat the password',
+  'setup.mismatch': 'The two passwords are different.',
+  'setup.submit': 'Save password and continue',
+  'setup.missing':
+    'This link is incomplete. Open the whole link you were sent, or ask for a new one.',
 
   'orgs.title': 'Your organisations',
   'orgs.subtitle': 'Choose an organisation to work in, or register a new one.',
@@ -61,6 +82,9 @@ const en = {
   'error.RATE_LIMITED': 'Too many attempts. Try again in {seconds} seconds.',
   'error.INVALID_CREDENTIALS': 'Invalid phone number or password.',
   'error.ACCOUNT_SUSPENDED': 'This account is suspended. Contact support.',
+  'error.SETUP_LINK_INVALID':
+    'This setup link no longer works: it was used already or has expired. Ask for a new one.',
+  'error.SMS_UNAVAILABLE': 'Sign-in codes by SMS are not available. Sign in with your password.',
   'error.SLUG_TAKEN': 'That handle is already taken. Choose another.',
   'error.COUNTRY_NOT_SUPPORTED': 'Registration is not open in this country yet.',
   'error.VALIDATION_FAILED': 'Some fields are missing or invalid.',
@@ -96,6 +120,25 @@ const sw: Messages = {
   'signIn.nameSubtitle': 'Namba hii haina akaunti bado. Tukuite nani?',
   'signIn.displayName': 'Jina lako',
   'signIn.createAccount': 'Fungua akaunti',
+  'signIn.passwordSubtitle': 'Tumia namba yako ya simu na nenosiri.',
+  'signIn.password': 'Nenosiri',
+  'signIn.signIn': 'Ingia',
+  'signIn.noPassword':
+    'Huna nenosiri bado, au umelisahau? Muombe aliyekualika akutumie kiungo cha kuweka akaunti.',
+  'signIn.usePassword': 'Ingia kwa nenosiri badala yake',
+  'signIn.useCode': 'Pata nambari kwa SMS badala yake',
+
+  'setup.title': 'Weka akaunti yako',
+  'setup.subtitle': 'Chagua nenosiri. Utaingia kwa namba yako ya simu na nenosiri hili.',
+  'setup.for': 'Akaunti ya {phone}',
+  'setup.joining': 'Utajiunga na {name}.',
+  'setup.name': 'Jina lako',
+  'setup.password': 'Nenosiri jipya',
+  'setup.passwordHint': 'Angalau herufi 10. Sentensi fupi ni rahisi kukumbuka.',
+  'setup.confirm': 'Rudia nenosiri',
+  'setup.mismatch': 'Manenosiri mawili hayafanani.',
+  'setup.submit': 'Hifadhi nenosiri na uendelee',
+  'setup.missing': 'Kiungo hiki hakijakamilika. Fungua kiungo kizima ulichotumiwa, au omba kipya.',
 
   'orgs.title': 'Mashirika yako',
   'orgs.subtitle': 'Chagua shirika la kufanyia kazi, au sajili jipya.',
@@ -125,6 +168,9 @@ const sw: Messages = {
   'error.RATE_LIMITED': 'Majaribio mengi mno. Jaribu tena baada ya sekunde {seconds}.',
   'error.INVALID_CREDENTIALS': 'Namba ya simu au nenosiri si sahihi.',
   'error.ACCOUNT_SUSPENDED': 'Akaunti hii imesimamishwa. Wasiliana na huduma kwa wateja.',
+  'error.SETUP_LINK_INVALID':
+    'Kiungo hiki hakifanyi kazi tena: kimeshatumika au muda wake umeisha. Omba kipya.',
+  'error.SMS_UNAVAILABLE': 'Nambari za kuingia kwa SMS hazipatikani. Ingia kwa nenosiri lako.',
   'error.SLUG_TAKEN': 'Jina hilo fupi limeshachukuliwa. Chagua jingine.',
   'error.COUNTRY_NOT_SUPPORTED': 'Usajili bado haujafunguliwa katika nchi hii.',
   'error.VALIDATION_FAILED': 'Baadhi ya sehemu hazijajazwa au si sahihi.',

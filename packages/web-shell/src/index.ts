@@ -27,3 +27,4 @@ export {
 } from './organisations.js';
 export { PHONE_COUNTRIES, toE164, type PhoneCountryCode } from './phone.js';
 export { SignInFlow } from './sign-in-flow.js';
+export { SetupFlow } from './setup-flow.js';

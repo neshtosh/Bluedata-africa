@@ -10,7 +10,7 @@
 | Schema | Implemented (Phase 2.2) | Deferred to |
 |---|---|---|
 | `app` | `current_org_id()`, `current_user_id()`, `is_active_member()`, `ensure_audit_partitions()` | — |
-| `identity` | users, user_credentials, sessions, otp_challenges | api_keys → auth increment (2.4) |
+| `identity` | users, user_credentials, sessions, otp_challenges, setup_tokens (3.4a, ADR-019: HMAC of one-time setup links) | api_keys → before the pilot widens |
 | `tenancy` | organisations, organisation_type_assignments, branches, memberships, roles, role_permissions, membership_roles, subscriptions, data_sharing_agreements | — |
 | `ref` | currencies, countries, organisation_types, products, plans, permissions; **species, species_names, product_forms, units** (3.1) | admin areas, FX rates → Phase 3/4; global unit conversions deferred (ADR-017) |
 | `system` | outbox_events (no RLS, documented exception), idempotency_keys, document_sequences | documents, notifications, integration configs → Phase 3 |

@@ -3,6 +3,7 @@
 import { ApiError } from '@blue/api-client';
 import { endpoints } from '@blue/contracts';
 import { Alert, Button, Card, Field, Input, Select } from '@blue/ui';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { describeError, useApi, useRefreshSession } from './api.js';
 import { useI18n } from './i18n.js';
@@ -10,11 +11,13 @@ import { PHONE_COUNTRIES, toE164, type PhoneCountryCode } from './phone.js';
 
 const RESEND_AFTER_SECONDS = 30;
 
-type Step = 'phone' | 'code' | 'name';
+type Step = 'phone' | 'code' | 'name' | 'password';
 
 /**
  * Phone-first sign-in (ARCHITECTURE.md §10.2): number → SMS code → (name, first time only).
  * The same code is resubmitted with the name, so new users never wait for a second SMS.
+ * Where SMS is switched off (ADR-019), it is phone number + password; accounts get their first
+ * password from a setup link.
  */
 export function SignInFlow({ brand, onSignedIn }: { brand: ReactNode; onSignedIn: () => void }) {
   const api = useApi();
@@ -31,6 +34,17 @@ export function SignInFlow({ brand, onSignedIn }: { brand: ReactNode; onSignedIn
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
+  const [password, setPassword] = useState('');
+
+  const methods = useQuery({
+    queryKey: ['auth', 'methods'],
+    queryFn: () => api.call(endpoints.auth.methods),
+    staleTime: Infinity,
+  });
+  // Until the answer arrives (or if it can't be fetched), offer SMS codes as before.
+  const otpAvailable = methods.data?.otp ?? true;
+  // Without SMS, the phone step is the password form.
+  const current: Step = !otpAvailable && step === 'phone' ? 'password' : step;
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -70,6 +84,25 @@ export function SignInFlow({ brand, onSignedIn }: { brand: ReactNode; onSignedIn
     void sendCode(e164);
   }
 
+  function signInWithPassword(event: FormEvent) {
+    event.preventDefault();
+    const e164 = toE164(country, typedPhone);
+    if (!e164) {
+      setError(t('signIn.phoneInvalid'));
+      return;
+    }
+    void run(async () => {
+      await api.call(endpoints.auth.passwordLogin, { body: { phone: e164, password } });
+      await refreshSession();
+      onSignedIn();
+    });
+  }
+
+  function switchTo(next: 'phone' | 'password') {
+    setStep(next);
+    setError(null);
+  }
+
   function verify(event: FormEvent, withName: boolean) {
     event.preventDefault();
     if (!phone || !challengeId) return;
@@ -91,45 +124,74 @@ export function SignInFlow({ brand, onSignedIn }: { brand: ReactNode; onSignedIn
   }
 
   const example = PHONE_COUNTRIES.find((c) => c.code === country)?.example ?? '';
+  const phoneFields = (
+    <div className="grid grid-cols-[128px_1fr] gap-2">
+      <Field label={t('signIn.country')}>
+        <Select value={country} onChange={(e) => setCountry(e.target.value as PhoneCountryCode)}>
+          {PHONE_COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.code} {c.dial}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t('signIn.phone')} hint={t('signIn.phoneHint', { example })}>
+        <Input
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          value={typedPhone}
+          onChange={(e) => setTypedPhone(e.target.value)}
+          autoFocus
+        />
+      </Field>
+    </div>
+  );
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-mist-50 px-4 py-10">
       <div className="w-full max-w-[400px]">
         <div className="mb-6 flex justify-center">{brand}</div>
         <Card className="px-6 py-6">
-          {step === 'phone' ? (
+          {current === 'phone' ? (
             <form onSubmit={submitPhone} noValidate className="flex flex-col gap-4">
               <Header title={t('signIn.title')} subtitle={t('signIn.subtitle')} />
-              <div className="grid grid-cols-[128px_1fr] gap-2">
-                <Field label={t('signIn.country')}>
-                  <Select
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value as PhoneCountryCode)}
-                  >
-                    {PHONE_COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.code} {c.dial}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label={t('signIn.phone')} hint={t('signIn.phoneHint', { example })}>
-                  <Input
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel-national"
-                    value={typedPhone}
-                    onChange={(e) => setTypedPhone(e.target.value)}
-                    autoFocus
-                  />
-                </Field>
-              </div>
+              {phoneFields}
               {error ? <Alert tone="danger">{error}</Alert> : null}
               <Button type="submit" size="lg" loading={busy}>
                 {t('signIn.sendCode')}
               </Button>
+              <SwitchLink onClick={() => switchTo('password')}>
+                {t('signIn.usePassword')}
+              </SwitchLink>
             </form>
-          ) : step === 'code' ? (
+          ) : current === 'password' ? (
+            <form onSubmit={signInWithPassword} noValidate className="flex flex-col gap-4">
+              <Header title={t('signIn.title')} subtitle={t('signIn.passwordSubtitle')} />
+              {phoneFields}
+              <Field label={t('signIn.password')}>
+                <Input
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+              {error ? <Alert tone="danger">{error}</Alert> : null}
+              <Button
+                type="submit"
+                size="lg"
+                loading={busy}
+                disabled={!typedPhone.trim() || password.length === 0}
+              >
+                {t('signIn.signIn')}
+              </Button>
+              <p className="text-[13px] leading-5 text-mist-500">{t('signIn.noPassword')}</p>
+              {otpAvailable ? (
+                <SwitchLink onClick={() => switchTo('phone')}>{t('signIn.useCode')}</SwitchLink>
+              ) : null}
+            </form>
+          ) : current === 'code' ? (
             <form onSubmit={(e) => verify(e, false)} noValidate className="flex flex-col gap-4">
               <Header
                 title={t('signIn.codeTitle')}
@@ -203,6 +265,18 @@ export function SignInFlow({ brand, onSignedIn }: { brand: ReactNode; onSignedIn
         </Card>
       </div>
     </div>
+  );
+}
+
+function SwitchLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      className="self-center text-[13px] font-medium text-accent-strong underline-offset-2 hover:underline"
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }
 

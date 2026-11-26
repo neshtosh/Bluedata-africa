@@ -24,8 +24,13 @@ const envSchema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   OTP_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(300),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
-  /** `log` writes codes to the server log and exists for development and tests only. */
-  SMS_PROVIDER: z.enum(['log']).default('log'),
+  /**
+   * `log` writes codes to the server log and exists for development and tests only. `none` turns
+   * SMS sign-in off: people sign in with a password set through a setup link (ADR-019).
+   */
+  SMS_PROVIDER: z.enum(['log', 'none']).default('log'),
+  /** How long a one-time setup link works. */
+  SETUP_LINK_TTL_HOURS: z.coerce.number().int().min(1).max(336).default(72),
   /** Parent domain shared by samakios./bluedata. subdomains, e.g. `.example.africa`. */
   COOKIE_DOMAIN: z.string().min(1).optional(),
   /** Defaults to true everywhere except development and test (plain-http localhost). */

@@ -22,6 +22,13 @@ export class LogSmsSender implements SmsSender {
   }
 }
 
+/** SMS switched off (ADR-019). Never reached: sign-in by code is refused before sending. */
+export class NoSmsSender implements SmsSender {
+  async send(): Promise<void> {
+    throw new Error('SMS is switched off (SMS_PROVIDER=none)');
+  }
+}
+
 /** Keeps country code and last two digits: +254*******01. */
 export function maskPhone(e164: string): string {
   return e164.length <= 6

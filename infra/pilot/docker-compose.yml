@@ -1,0 +1,156 @@
+# Pilot stack on the founder's laptop (ADR-019). Separate from the development services:
+# its own project name, network, volumes and ports, so development resets never touch pilot data.
+# Operate it with infra/pilot/pilot.ps1 (see infra/pilot/README.md), not by hand.
+name: blue-pilot
+
+x-api-env: &api-env
+  NODE_ENV: production
+  LOG_LEVEL: info
+  DATABASE_RUNTIME_URL: postgres://app_runtime:${APP_RUNTIME_PASSWORD}@postgres:5432/blue
+  VALKEY_URL: redis://valkey:6379
+  AUTH_SECRET: ${AUTH_SECRET}
+  # No SMS until funded: people sign in with a password set through a setup link.
+  SMS_PROVIDER: none
+  SETUP_LINK_TTL_HOURS: '72'
+  # Requests arrive through the tunnel and the proxy; the proxy sets X-Forwarded-For to the
+  # visitor's address as seen by Cloudflare.
+  TRUST_PROXY: 'true'
+  # Each app reaches the API on its own address (same origin), so no cross-origin access is needed.
+  CORS_ORIGINS: ''
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: blue
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD}
+      APP_RUNTIME_PASSWORD: ${APP_RUNTIME_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../docker/initdb:/docker-entrypoint-initdb.d:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d blue']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    # No published port: only the pilot containers can reach the database.
+
+  valkey:
+    image: valkey/valkey:8.1
+    restart: unless-stopped
+    command: ['valkey-server', '--appendonly', 'yes']
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Applies migrations and reference data, then exits. API and worker start only after it succeeds.
+  migrate:
+    image: blue-pilot-api:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    command: ['node', 'dist/scripts/migrate.js']
+    environment:
+      DATABASE_MIGRATOR_URL: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@postgres:5432/blue
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    image: blue-pilot-api:local
+    restart: unless-stopped
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    image: blue-pilot-api:local
+    restart: unless-stopped
+    command: ['node', 'dist/main.worker.js']
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+
+  samakios-web:
+    image: blue-pilot-samakios-web:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        APP: samakios-web
+        # Empty: the browser calls /v1 on the app's own address, which the proxy sends to the API.
+        NEXT_PUBLIC_API_URL: ''
+    restart: unless-stopped
+
+  bluedata-web:
+    image: blue-pilot-bluedata-web:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        APP: bluedata-web
+        NEXT_PUBLIC_API_URL: ''
+    restart: unless-stopped
+
+  # One address per app: /v1/* goes to the API, everything else to the app.
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      # Local only, for checking the pilot on this laptop: http://localhost:8080 and :8082.
+      - '127.0.0.1:8080:8080'
+      - '127.0.0.1:8082:8082'
+    depends_on:
+      api:
+        condition: service_healthy
+      samakios-web:
+        condition: service_started
+      bluedata-web:
+        condition: service_started
+
+  # Cloudflare quick tunnels: free, outbound-only, HTTPS. Each gets a random
+  # https://<words>.trycloudflare.com address that changes whenever the tunnel restarts
+  # (`pilot.ps1 urls` shows the current ones). A domain on Cloudflare later makes them fixed.
+  tunnel-samakios:
+    image: cloudflare/cloudflared:2025.11.1
+    restart: unless-stopped
+    command: ['tunnel', '--no-autoupdate', '--url', 'http://proxy:8080']
+    depends_on: [proxy]
+
+  tunnel-bluedata:
+    image: cloudflare/cloudflared:2025.11.1
+    restart: unless-stopped
+    command: ['tunnel', '--no-autoupdate', '--url', 'http://proxy:8082']
+    depends_on: [proxy]
+
+volumes:
+  postgres-data:
+  valkey-data:

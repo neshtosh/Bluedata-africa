@@ -1,4 +1,10 @@
-import { endpoints, type OtpRequest, type OtpVerify, type PasswordLogin } from '@blue/contracts';
+import {
+  endpoints,
+  type CompleteSetup,
+  type OtpRequest,
+  type OtpVerify,
+  type PasswordLogin,
+} from '@blue/contracts';
 import { users, type DatabaseHandle } from '@blue/database';
 import type { Id } from '@blue/primitives';
 import { Body, Controller, Inject, Req, Res } from '@nestjs/common';
@@ -12,8 +18,11 @@ import { bucketKey, RateLimiter } from '../../kernel/rate-limit/rate-limiter.js'
 import { ZodValidationPipe } from '../../kernel/validation/zod-validation.pipe.js';
 import { Public, SignedIn } from '../access/access-policy.js';
 import { AuditService } from '../audit/audit.service.js';
+import { TenancyService } from '../tenancy/tenancy.service.js';
+import { AppError } from '../../kernel/errors/app-error.js';
 import { OtpService } from './otp.service.js';
 import { PasswordService } from './password.service.js';
+import { SetupLinkService } from './setup-link.service.js';
 import { clearSessionCookie, setSessionCookie } from './session-cookie.js';
 import { SessionService } from './session.service.js';
 
@@ -30,7 +39,50 @@ export class AuthController {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(DATABASE) private readonly database: DatabaseHandle,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    @Inject(SetupLinkService) private readonly setupLinks: SetupLinkService,
+    @Inject(TenancyService) private readonly tenancy: TenancyService,
   ) {}
+
+  @Public()
+  @Endpoint(endpoints.auth.methods)
+  methods() {
+    return { otp: this.config.SMS_PROVIDER !== 'none', password: true };
+  }
+
+  @Public()
+  @Endpoint(endpoints.auth.inspectSetup)
+  async inspectSetup(
+    @Body(new ZodValidationPipe(endpoints.auth.inspectSetup.body)) body: { token: string },
+    @Req() request: FastifyRequest,
+  ) {
+    await this.rateLimiter.consume(`setup:ip:${bucketKey(request.ip)}`, 60, QUARTER_HOUR);
+    return this.setupLinks.inspect(body.token);
+  }
+
+  @Public()
+  @Endpoint(endpoints.auth.completeSetup)
+  async completeSetup(
+    @Body(new ZodValidationPipe(endpoints.auth.completeSetup.body)) body: CompleteSetup,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    await this.rateLimiter.consume(`setup:ip:${bucketKey(request.ip)}`, 60, QUARTER_HOUR);
+    const { userId, organisationId } = await this.setupLinks.complete(
+      body.token,
+      body.password,
+      body.displayName,
+    );
+    // A new password ends every other session, as with a password change.
+    await this.sessions.revokeAllForUser(userId);
+    const started = await this.startSession(userId, request, reply, 'auth.signed_in', 'setup_link');
+    if (organisationId) {
+      // The organisation sent the link, so opening it accepts its invitation (if still pending).
+      await this.tenancy.acceptInvitation(organisationId).catch((error: unknown) => {
+        if (!(error instanceof AppError && error.status === 404)) throw error;
+      });
+    }
+    return started;
+  }
 
   @Public()
   @Endpoint(endpoints.auth.requestOtp)
@@ -38,6 +90,14 @@ export class AuthController {
     @Body(new ZodValidationPipe(endpoints.auth.requestOtp.body)) body: OtpRequest,
     @Req() request: FastifyRequest,
   ) {
+    if (this.config.SMS_PROVIDER === 'none') {
+      throw new AppError({
+        status: 503,
+        code: 'SMS_UNAVAILABLE',
+        title: 'Sign-in codes by SMS are not available here',
+        detail: 'Sign in with your phone number and password, or ask for a setup link.',
+      });
+    }
     // Per number: stops SMS bombing one person. Per IP: stops one client spraying numbers.
     await this.rateLimiter.consume(`otp-request:phone:${bucketKey(body.phone)}`, 5, HOUR);
     await this.rateLimiter.consume(`otp-request:ip:${bucketKey(request.ip)}`, 30, HOUR);
@@ -94,7 +154,7 @@ export class AuthController {
     request: FastifyRequest,
     reply: FastifyReply,
     action: 'user.registered' | 'auth.signed_in',
-    method: 'otp' | 'password',
+    method: 'otp' | 'password' | 'setup_link',
   ) {
     const session = await this.sessions.create(userId, {
       ip: request.ip,

@@ -25,6 +25,7 @@ import {
 import { newId, type Id } from '@blue/primitives';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, inArray, isNull, lte, or } from 'drizzle-orm';
+import { APP_CONFIG, type AppConfig } from '../../kernel/config/app-config.js';
 import { RequestContext } from '../../kernel/context/request-context.js';
 import { DATABASE } from '../../kernel/database/database.token.js';
 import { pgError, UNIQUE_VIOLATION } from '../../kernel/database/pg-error.js';
@@ -33,6 +34,7 @@ import { AppError } from '../../kernel/errors/app-error.js';
 import { OutboxService } from '../../kernel/outbox/outbox.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { ProductCode } from '../access/access-policy.js';
+import { issueSetupToken, setupPath } from '../identity/setup-tokens.js';
 import { maskPhone } from '../identity/sms-sender.js';
 
 /** What a member may do in one organisation, resolved once per request by the AccessGuard. */
@@ -53,6 +55,7 @@ export class TenancyService {
     @Inject(TenantDatabase) private readonly tenantDb: TenantDatabase,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(OutboxService) private readonly outbox: OutboxService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   /**
@@ -383,6 +386,53 @@ export class TenancyService {
   }
 
   /** The signed-in user accepts their pending invitation to an organisation. */
+  /**
+   * A one-time setup link for a member of this organisation who has never signed in (ADR-019).
+   * People who have signed in before may belong to other organisations, so a link from here
+   * could take over their account elsewhere; their password resets go through the operator.
+   */
+  async createSetupLink(userId: Id): Promise<{ path: string; expiresAt: string }> {
+    const context = RequestContext.require();
+    const [membership] = await this.tenantDb.inTenant((tx) =>
+      tx
+        .select({ id: memberships.id })
+        .from(memberships)
+        .where(
+          and(eq(memberships.userId, userId), inArray(memberships.status, ['active', 'invited'])),
+        ),
+    );
+    if (!membership) throw AppError.notFound('This person is not a member of this organisation.');
+    const [user] = await this.database.db
+      .select({ lastLoginAt: users.lastLoginAt, status: users.status })
+      .from(users)
+      .where(eq(users.id, userId));
+    if (!user || user.status !== 'active' || user.lastLoginAt !== null) {
+      throw new AppError({
+        status: 409,
+        code: 'SETUP_LINK_NOT_ALLOWED',
+        title: 'This person has already signed in',
+        detail:
+          'Setup links are only for people who have not signed in yet. If they forgot their password, ask the platform operator for a reset link.',
+      });
+    }
+    const organisationId = context.organisationId as Id;
+    const { token, expiresAt } = await issueSetupToken(
+      this.database.db,
+      this.config.AUTH_SECRET,
+      this.config.SETUP_LINK_TTL_HOURS,
+      { userId, organisationId, createdByUserId: requireUser(context) },
+    );
+    await this.tenantDb.inTenant((tx) =>
+      this.audit.record(tx, {
+        action: 'membership.setup_link_created',
+        entityType: 'membership',
+        entityId: membership.id as Id,
+        changes: { userId, expiresAt: expiresAt.toISOString() },
+      }),
+    );
+    return { path: setupPath(token), expiresAt: expiresAt.toISOString() };
+  }
+
   acceptInvitation(organisationId: Id): Promise<{ membershipId: Id; status: 'active' }> {
     const context = RequestContext.require();
     return RequestContext.run({ ...context, organisationId }, () =>

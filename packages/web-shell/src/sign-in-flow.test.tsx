@@ -128,4 +128,39 @@ describe('SignInFlow', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Enter a valid mobile number');
     expect(spy.mock.calls.filter(([e]) => e === endpoints.auth.requestOtp)).toHaveLength(0);
   });
+
+  it('signs in with phone and password when SMS is switched off', async () => {
+    const { spy, onSignedIn, user } = renderFlow(async (endpoint) => {
+      if (endpoint === endpoints.auth.methods) return { otp: false, password: true };
+      if (endpoint === endpoints.auth.passwordLogin)
+        return { user: { id: 'u', displayName: 'Amina' }, sessionExpiresAt: '' };
+      return null;
+    });
+    // No way to ask for an SMS code, and help for people without a password.
+    expect(await screen.findByLabelText('Password')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Send code' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Get a code by SMS instead' })).toBeNull();
+    expect(screen.getByText(/Ask the person who invited you/)).toBeTruthy();
+
+    await user.type(screen.getByLabelText('Mobile number'), '0712 345 678');
+    await user.type(screen.getByLabelText('Password'), 'correct horse battery');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    expect(spy).toHaveBeenCalledWith(endpoints.auth.passwordLogin, {
+      body: { phone: '+254712345678', password: 'correct horse battery' },
+    });
+    expect(onSignedIn).toHaveBeenCalled();
+  });
+
+  it('offers a password as an alternative when SMS codes are available', async () => {
+    const { user } = renderFlow(async (endpoint) =>
+      endpoint === endpoints.auth.methods ? { otp: true, password: true } : null,
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Sign in with a password instead' }),
+    );
+    expect(screen.getByLabelText('Password')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Get a code by SMS instead' }));
+    expect(screen.getByRole('button', { name: 'Send code' })).toBeTruthy();
+  });
 });

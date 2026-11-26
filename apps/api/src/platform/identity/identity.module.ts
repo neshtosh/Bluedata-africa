@@ -6,7 +6,8 @@ import { MeController } from './me.controller.js';
 import { OtpService } from './otp.service.js';
 import { PasswordService } from './password.service.js';
 import { SessionService } from './session.service.js';
-import { LogSmsSender, SMS_SENDER, type SmsSender } from './sms-sender.js';
+import { LogSmsSender, NoSmsSender, SMS_SENDER, type SmsSender } from './sms-sender.js';
+import { SetupLinkService } from './setup-link.service.js';
 
 @Module({
   imports: [TenancyModule],
@@ -15,18 +16,22 @@ import { LogSmsSender, SMS_SENDER, type SmsSender } from './sms-sender.js';
     SessionService,
     OtpService,
     PasswordService,
+    SetupLinkService,
     {
       provide: SMS_SENDER,
       inject: [APP_CONFIG],
-      // Only the development provider exists; config refuses it in production.
+      // Only the development provider exists; config refuses it in production. With `none`,
+      // AuthController refuses OTP requests before anything would be sent.
       useFactory: (config: AppConfig): SmsSender => {
         switch (config.SMS_PROVIDER) {
           case 'log':
             return new LogSmsSender();
+          case 'none':
+            return new NoSmsSender();
         }
       },
     },
   ],
-  exports: [SessionService],
+  exports: [SessionService, SetupLinkService],
 })
 export class IdentityModule {}

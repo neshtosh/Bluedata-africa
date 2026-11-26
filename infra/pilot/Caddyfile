@@ -1,0 +1,32 @@
+# Pilot reverse proxy (ADR-019). Plain HTTP inside the laptop; Cloudflare provides HTTPS.
+{
+	# The tunnels and Docker's own network are private addresses: trust them to say who the
+	# visitor is (Cloudflare sets Cf-Connecting-IP), so the API's rate limits see real visitors.
+	servers {
+		trusted_proxies static private_ranges
+		client_ip_headers Cf-Connecting-IP
+	}
+	admin off
+}
+
+(app) {
+	encode gzip
+	# Replace (not append) X-Forwarded-For, so a visitor can't spoof their address.
+	reverse_proxy /v1/* api:4000 {
+		header_up X-Forwarded-For {client_ip}
+	}
+	reverse_proxy /health/* api:4000
+	reverse_proxy {args[0]}:3000 {
+		header_up X-Forwarded-For {client_ip}
+	}
+}
+
+# SamakiOS
+:8080 {
+	import app samakios-web
+}
+
+# BlueData Africa
+:8082 {
+	import app bluedata-web
+}

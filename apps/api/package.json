@@ -14,7 +14,8 @@
     "dev": "tsx watch src/main.api.ts",
     "dev:worker": "tsx watch src/main.worker.ts",
     "openapi:generate": "tsx src/scripts/openapi.ts",
-    "openapi:check": "tsx src/scripts/openapi.ts --check"
+    "openapi:check": "tsx src/scripts/openapi.ts --check",
+    "setup-link": "tsx src/scripts/setup-link.ts"
   },
   "dependencies": {
     "@blue/contracts": "workspace:*",

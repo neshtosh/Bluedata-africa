@@ -128,3 +128,26 @@ export const otpChallenges = identity.table(
     index('otp_challenges_destination_idx').on(t.destinationHash, t.createdAt),
   ],
 );
+
+/**
+ * One-time setup links (ADR-019): until SMS is funded, a person gets access by opening a link
+ * someone they know sent them (e.g. on WhatsApp) and choosing a password. Only an HMAC of the
+ * token is stored; a link works once and expires. `organisation_id` is set when an organisation
+ * created the link, so opening it also accepts that organisation's invitation.
+ */
+export const setupTokens = identity.table(
+  'setup_tokens',
+  {
+    id: idColumn(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: bytea('token_hash').notNull().unique(),
+    organisationId: uuid('organisation_id').references(() => organisations.id),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id),
+    createdAt: createdAt(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  },
+  (t) => [index('setup_tokens_user_idx').on(t.userId)],
+);

@@ -35,6 +35,26 @@ export function MembersPanel({ membership }: { membership: Membership }) {
     queryFn: () => api.call(endpoints.orgs.listMembers, { params: { orgId: organisationId } }),
   });
   const canInvite = membership.permissions.includes('platform.members.invite');
+  const canLink = membership.permissions.includes('platform.members.manage');
+  const [link, setLink] = useState<{ name: string; url: string; expiresAt: string } | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  async function createLink(userId: string, name: string) {
+    setLinkError(null);
+    setLink(null);
+    try {
+      const created = await api.call(endpoints.orgs.createSetupLink, {
+        params: { orgId: organisationId, userId },
+      });
+      setLink({
+        name,
+        url: `${window.location.origin}${created.path}`,
+        expiresAt: created.expiresAt,
+      });
+    } catch (caught) {
+      setLinkError(describeError(caught, t));
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,6 +82,7 @@ export function MembersPanel({ membership }: { membership: Membership }) {
                   <th className="px-5 py-2.5 font-medium">Phone</th>
                   <th className="px-5 py-2.5 font-medium">Roles</th>
                   <th className="px-5 py-2.5 font-medium">Status</th>
+                  {canLink ? <th className="px-5 py-2.5" /> : null}
                 </tr>
               </thead>
               <tbody className="divide-y divide-mist-100">
@@ -83,15 +104,87 @@ export function MembersPanel({ membership }: { membership: Membership }) {
                         {member.status}
                       </Badge>
                     </td>
+                    {canLink ? (
+                      <td className="px-5 py-3 text-right">
+                        {member.status === 'invited' ? (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void createLink(member.userId, member.displayName)}
+                          >
+                            Setup link
+                          </Button>
+                        ) : null}
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+        {linkError ? (
+          <CardBody>
+            <Alert tone="danger">{linkError}</Alert>
+          </CardBody>
+        ) : null}
+        {link ? <SetupLinkBox {...link} onClose={() => setLink(null)} /> : null}
       </Card>
       {canInvite ? <InviteForm organisationId={organisationId} /> : null}
     </div>
+  );
+}
+
+/**
+ * A freshly created setup link, to copy or share by hand. It is shown once: closing the box
+ * forgets it, and creating another replaces it.
+ */
+function SetupLinkBox({
+  name,
+  url,
+  expiresAt,
+  onClose,
+}: {
+  name: string;
+  url: string;
+  expiresAt: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const message = `${name}, use this link to set up your account (it works once): ${url}`;
+  return (
+    <CardBody className="border-t border-mist-100">
+      <div className="rounded-xl bg-accent-soft p-4">
+        <p className="text-[13px] font-semibold text-mist-900">Setup link for {name}</p>
+        <p className="mt-1 text-[12px] text-mist-600">
+          Send it to {name} only. It works once, until {new Date(expiresAt).toLocaleString()}.
+          Anyone with the link can set the password, so don&apos;t post it in a group.
+        </p>
+        <p className="mt-3 break-all rounded-lg bg-mist-0 px-3 py-2 font-mono text-[12px] text-mist-800">
+          {url}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={() => void navigator.clipboard.writeText(url).then(() => setCopied(true))}
+          >
+            {copied ? 'Copied' : 'Copy link'}
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Share on WhatsApp
+            </a>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Done
+          </Button>
+        </div>
+      </div>
+    </CardBody>
   );
 }
 
@@ -123,7 +216,7 @@ function InviteForm({ organisationId }: { organisationId: string }) {
         body: { phone, displayName, roleKeys: [role] },
       });
       setSent(
-        `${displayName} has been invited. They will see the invitation when they next sign in.`,
+        `${displayName} has been invited. If they don't have an account yet, create a setup link for them in the list above and send it to them.`,
       );
       setTypedPhone('');
       setDisplayName('');

@@ -68,6 +68,9 @@ Every endpoint declares: required permission key, required product entitlement (
 | `POST /v1/auth/otp/request` | Request SMS/email OTP | public, strict rate limit |
 | `POST /v1/auth/otp/verify` | Verify OTP → session. Body: `challengeId`, `phone`, `code`, and `displayName` (required for new numbers; otherwise `422 DISPLAY_NAME_REQUIRED`) | public, strict rate limit |
 | `POST /v1/auth/password/login` | Password login | public, strict rate limit |
+| `GET /v1/auth/methods` | Which sign-in methods this deployment offers (`otp`, `password`) — **built in 3.4a** | public |
+| `POST /v1/auth/setup/inspect` · `POST /v1/auth/setup` | Setup links (ADR-019): who a link is for (masked); choose a password with it → session (signs out other sessions, accepts the inviting organisation's invitation). `404 SETUP_LINK_INVALID` when used/expired — **built in 3.4a** | public, rate-limited per IP |
+| `POST /v1/orgs/{orgId}/members/{userId}/setup-link` | Setup link for an invited member who has never signed in (`409 SETUP_LINK_NOT_ALLOWED` otherwise); replaces earlier links — **built in 3.4a** | `platform.members.manage` |
 | `POST /v1/auth/logout` | Revoke current session | authenticated |
 | `POST /v1/auth/mfa/totp/enrol` · `/verify` | MFA | authenticated |
 | `GET /v1/me` | User, memberships, roles, entitled products | authenticated |

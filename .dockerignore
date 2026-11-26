@@ -18,3 +18,7 @@ tests/e2e/test-results
 infra/terraform/**/*.tfstate*
 infra/terraform/**/backend.hcl
 infra/terraform/**/terraform.tfvars
+infra/pilot/backups
+# Not needed inside images; excluding them keeps doc edits from forcing rebuilds.
+docs
+infra/pilot

@@ -193,3 +193,4 @@ Permissions stay in the API (`@RequirePermission`), not in contracts.
 - − The pilot is only up while the laptop is on, awake, online and running Docker; power cuts and travel take it down.
 - − Pilot data on a laptop that can be lost or stolen: disk encryption (BitLocker) and off-machine backups are required, not optional.
 - − Setup links put identity verification on the inviter, which is acceptable only while the pilot users are known personally.
+**Implemented (2026-11-26, increment 3.4a).** `infra/pilot` (Compose project `blue-pilot`, Caddy, two Cloudflare quick tunnels, `pilot.ps1`). Setup links: 256-bit tokens in the URL fragment, HMAC-stored, single use, 72 h, latest link only. Organisation owners/admins may create links only for members who have never signed in, so a link from one organisation can never take over an account used in another; the operator handles first owners and password resets.

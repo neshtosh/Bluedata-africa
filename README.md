@@ -113,6 +113,8 @@ The API image runs three roles by command: `node dist/main.api.js` (default), `n
 - **e2e**: the Playwright journeys;
 - **images**: builds the three Docker images and smoke-tests each container.
 
+**Pilot (ADR-019):** the pilot runs at zero cost on the founder's laptop behind Cloudflare tunnels — see [infra/pilot/README.md](infra/pilot/README.md).
+
 `.github/workflows/deploy-staging.yml` (manual) deploys to staging on AWS af-south-1. The infrastructure is in `infra/terraform`; see [infra/terraform/README.md](infra/terraform/README.md). Nothing has been applied yet.
 
 ## Repository layout
